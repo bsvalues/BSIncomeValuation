@@ -138,6 +138,8 @@ export const insertValuationSchema = createInsertSchema(valuations)
     notes: true,
   })
   .extend({
+    createdAt: z.date().optional(),
+    updatedAt: z.date().optional(),
     totalAnnualIncome: z.union([z.string(), z.number()]).transform(val => 
       typeof val === 'string' ? val : val.toString()
     ),
