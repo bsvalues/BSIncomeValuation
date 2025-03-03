@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Valuation, Income } from "@shared/schema";
 import { BarChart3, Plus, Calendar, Trash2, CreditCard, TrendingUp, ArrowUpRight } from "lucide-react";
 import { IncomeChart } from "@/components/ui/income-chart";
+import { ValuationHistoryChart } from "@/components/ui/valuation-history-chart";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -354,6 +355,32 @@ export default function Dashboard() {
           </TabsContent>
           
           <TabsContent value="valuations">
+            {/* Historical Valuation Chart */}
+            <Card className="mb-6">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg text-primary-700">Valuation History</CardTitle>
+                <CardDescription>Track your valuation progress over time</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-2">
+                {valuationsLoading ? (
+                  <div className="h-[350px] flex items-center justify-center">
+                    <p className="text-slate-500">Loading valuation history...</p>
+                  </div>
+                ) : valuations && valuations.length > 0 ? (
+                  <ValuationHistoryChart valuations={valuations} />
+                ) : (
+                  <div className="h-[350px] flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-slate-500 mb-4">No valuation history available</p>
+                      <Link href="/valuation/new">
+                        <Button variant="outline" size="sm">Create Valuation</Button>
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
             <div className="grid gap-6">
               {valuationsLoading ? (
                 <Card>
