@@ -9,6 +9,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ValuationForm from "@/pages/ValuationForm";
 import ValuationResult from "@/pages/ValuationResult";
+import Calculator from "@/pages/Calculator";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -48,6 +49,9 @@ function Router() {
       {/* Protected routes */}
       <Route path="/dashboard">
         {() => <PrivateRoute component={Dashboard} />}
+      </Route>
+      <Route path="/calculator">
+        {() => <PrivateRoute component={Calculator} />}
       </Route>
       <Route path="/valuation/new">
         {() => <PrivateRoute component={ValuationForm} />}
