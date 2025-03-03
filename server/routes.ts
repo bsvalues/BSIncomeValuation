@@ -16,10 +16,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
   router.post("/users", async (req: Request, res: Response) => {
     try {
+      console.log("Request body:", req.body);
       const userData = insertUserSchema.parse(req.body);
+      console.log("Parsed user data:", userData);
       const user = await storage.createUser(userData);
+      console.log("Created user:", user);
       res.status(201).json(user);
     } catch (error) {
+      console.error("Error creating user:", error);
       if (error instanceof ZodError) {
         const validationError = fromZodError(error);
         res.status(400).json({ error: validationError.message });

@@ -74,21 +74,39 @@ export const insertUserSchema = createInsertSchema(users).pick({
   fullName: true,
 });
 
-export const insertIncomeSchema = createInsertSchema(incomes).pick({
-  userId: true,
-  source: true,
-  amount: true,
-  frequency: true,
-  description: true,
-});
+export const insertIncomeSchema = createInsertSchema(incomes)
+  .pick({
+    userId: true,
+    source: true,
+    amount: true,
+    frequency: true,
+    description: true,
+  })
+  .extend({
+    amount: z.union([z.string(), z.number()]).transform(val => 
+      typeof val === 'string' ? val : val.toString()
+    ),
+  });
 
-export const insertValuationSchema = createInsertSchema(valuations).pick({
-  userId: true,
-  totalAnnualIncome: true,
-  multiplier: true,
-  valuationAmount: true,
-  notes: true,
-});
+export const insertValuationSchema = createInsertSchema(valuations)
+  .pick({
+    userId: true,
+    totalAnnualIncome: true,
+    multiplier: true,
+    valuationAmount: true,
+    notes: true,
+  })
+  .extend({
+    totalAnnualIncome: z.union([z.string(), z.number()]).transform(val => 
+      typeof val === 'string' ? val : val.toString()
+    ),
+    multiplier: z.union([z.string(), z.number()]).transform(val => 
+      typeof val === 'string' ? val : val.toString()
+    ),
+    valuationAmount: z.union([z.string(), z.number()]).transform(val => 
+      typeof val === 'string' ? val : val.toString()
+    ),
+  });
 
 // Types
 export type User = typeof users.$inferSelect;
