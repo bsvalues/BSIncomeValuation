@@ -95,7 +95,7 @@ describe("Valuation API Integration Tests", () => {
   });
 
   test("POST /api/incomes should create a new income", async () => {
-    const income: InsertIncome = {
+    const income: Any = {
       userId: testUser.id,
       source: "salary",
       amount: 5000,
@@ -116,7 +116,7 @@ describe("Valuation API Integration Tests", () => {
 
   test("GET /api/users/:userId/incomes should return user's incomes", async () => {
     // Add test incomes
-    const incomes: InsertIncome[] = [
+    const incomes: Any[] = [
       {
         userId: testUser.id,
         source: "salary",
@@ -148,7 +148,7 @@ describe("Valuation API Integration Tests", () => {
 
   test("POST /api/valuations should create a new valuation", async () => {
     // First create some incomes
-    const income: InsertIncome = {
+    const income: Any = {
       userId: testUser.id,
       source: "salary",
       amount: 5000,
@@ -158,7 +158,7 @@ describe("Valuation API Integration Tests", () => {
     await testServer.mockStorage.createIncome(income);
     
     // Now create a valuation
-    const valuation: InsertValuation = {
+    const valuation: Any = {
       userId: testUser.id,
       name: "Test Valuation",
       valuationAmount: 150000,
@@ -181,7 +181,7 @@ describe("Valuation API Integration Tests", () => {
 
   test("GET /api/users/:userId/valuations should return user's valuations", async () => {
     // Add test valuations
-    const valuations: InsertValuation[] = [
+    const valuations: Any[] = [
       {
         userId: testUser.id,
         name: "Valuation 1",
@@ -217,7 +217,7 @@ describe("Valuation API Integration Tests", () => {
 
   test("PUT /api/valuations/:id should update a valuation", async () => {
     // Create a valuation
-    const valuation: InsertValuation = {
+    const valuation: Any = {
       userId: testUser.id,
       name: "Original Name",
       valuationAmount: 150000,
@@ -250,7 +250,7 @@ describe("Valuation API Integration Tests", () => {
 
   test("DELETE /api/valuations/:id should delete a valuation", async () => {
     // Create a valuation
-    const valuation: InsertValuation = {
+    const valuation: Any = {
       userId: testUser.id,
       name: "Test Valuation",
       valuationAmount: 150000,
