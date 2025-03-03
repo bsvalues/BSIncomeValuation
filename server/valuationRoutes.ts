@@ -1,27 +1,81 @@
 import { Router, Request, Response } from "express";
-import { storage } from "./storage";
-import { insertValuationSchema } from "@shared/schema";
 import { authenticateJWT } from "./auth";
-import { z } from "zod";
+import { storage } from "./storage";
+import { insertIncomeSchema, insertValuationSchema } from "@shared/schema";
+import { ZodError } from "zod";
 
 export const valuationRouter = Router();
 
-// Get available income multipliers
+// Get all valuations for the authenticated user
 valuationRouter.get(
-  "/multipliers",
+  "/",
   authenticateJWT,
   async (req: Request & { user?: any }, res: Response) => {
     try {
-      const multipliers = await storage.getAllIncomeMultipliers();
-      res.json(multipliers);
+      const userId = req.user.userId;
+      const valuations = await storage.getValuationsByUserId(userId);
+      
+      res.json({
+        success: true,
+        data: valuations
+      });
     } catch (error) {
-      console.error("Error fetching multipliers:", error);
-      res.status(500).json({ error: "Failed to fetch income multipliers" });
+      console.error("Error fetching valuations:", error);
+      res.status(500).json({
+        success: false,
+        error: {
+          message: "Failed to fetch valuations"
+        }
+      });
     }
   }
 );
 
-// Calculate valuation based on user's income sources
+// Get a specific valuation by ID
+valuationRouter.get(
+  "/:id",
+  authenticateJWT,
+  async (req: Request & { user?: any }, res: Response) => {
+    try {
+      const valuationId = parseInt(req.params.id);
+      const valuation = await storage.getValuationById(valuationId);
+      
+      if (!valuation) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: "Valuation not found"
+          }
+        });
+      }
+      
+      // Check if the valuation belongs to the authenticated user
+      if (valuation.userId !== req.user.userId) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            message: "You don't have permission to access this valuation"
+          }
+        });
+      }
+      
+      res.json({
+        success: true,
+        data: valuation
+      });
+    } catch (error) {
+      console.error("Error fetching valuation:", error);
+      res.status(500).json({
+        success: false,
+        error: {
+          message: "Failed to fetch valuation"
+        }
+      });
+    }
+  }
+);
+
+// Calculate a new valuation
 valuationRouter.post(
   "/calculate",
   authenticateJWT,
@@ -29,178 +83,194 @@ valuationRouter.post(
     try {
       const userId = req.user.userId;
       
-      // Calculate valuation
-      const valuation = await storage.calculateValuation(userId);
+      // Calculate valuation based on user's income sources
+      const valuationResult = await storage.calculateValuation(userId);
       
-      res.json(valuation);
+      // Create a new valuation record
+      const newValuation = await storage.createValuation({
+        userId,
+        name: req.body.name || `Valuation ${new Date().toLocaleDateString()}`,
+        valuationAmount: valuationResult.totalValuation.toString(),
+        incomeBreakdown: JSON.stringify(valuationResult.incomeBreakdown),
+        multiplier: valuationResult.weightedMultiplier.toString(),
+        totalAnnualIncome: valuationResult.totalAnnualIncome.toString(),
+        notes: req.body.notes || "",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      res.status(201).json({
+        success: true,
+        data: {
+          valuation: newValuation,
+          calculationDetails: valuationResult
+        }
+      });
     } catch (error) {
       console.error("Error calculating valuation:", error);
-      res.status(500).json({ error: "Failed to calculate valuation" });
+      res.status(500).json({
+        success: false,
+        error: {
+          message: "Failed to calculate valuation"
+        }
+      });
     }
   }
 );
 
-// Save calculated valuation
+// Create a new income
 valuationRouter.post(
-  "/save",
+  "/income",
   authenticateJWT,
   async (req: Request & { user?: any }, res: Response) => {
     try {
       const userId = req.user.userId;
       
-      // Validate request body
-      const valuationData = req.body;
-      const validationSchema = z.object({
-        totalAnnualIncome: z.number().or(z.string().regex(/^[0-9]+(\.[0-9]+)?$/)),
-        multiplier: z.number().or(z.string().regex(/^[0-9]+(\.[0-9]+)?$/)),
-        notes: z.string().optional(),
-      });
-      
-      const validatedData = validationSchema.parse(valuationData);
-      
-      // Calculate valuation amount
-      const totalAnnualIncome = parseFloat(validatedData.totalAnnualIncome.toString());
-      const multiplier = parseFloat(validatedData.multiplier.toString());
-      const valuationAmount = totalAnnualIncome * multiplier;
-      
-      // Create valuation in database
-      const newValuation = await storage.createValuation({
+      // Validate the income data
+      const incomeData = insertIncomeSchema.parse({
+        ...req.body,
         userId,
-        totalAnnualIncome: totalAnnualIncome.toString(),
-        multiplier: multiplier.toString(),
-        valuationAmount: valuationAmount.toString(),
-        notes: validatedData.notes,
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
       
-      res.status(201).json(newValuation);
+      // Create the income
+      const newIncome = await storage.createIncome(incomeData);
+      
+      res.status(201).json({
+        success: true,
+        data: newIncome
+      });
     } catch (error) {
-      console.error("Error saving valuation:", error);
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: "Invalid valuation data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to save valuation" });
+      console.error("Error creating income:", error);
+      
+      if (error instanceof ZodError) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            message: "Invalid income data",
+            details: error.format()
+          }
+        });
       }
+      
+      res.status(500).json({
+        success: false,
+        error: {
+          message: "Failed to create income"
+        }
+      });
     }
   }
 );
 
-// Admin endpoint to manage income multipliers
-valuationRouter.post(
-  "/multipliers",
-  authenticateJWT,
-  async (req: Request & { user?: any }, res: Response) => {
-    try {
-      // Check if user is admin
-      if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: "Unauthorized. Admin access required." });
-      }
-      
-      const multiplierData = req.body;
-      const validationSchema = z.object({
-        source: z.string().min(1),
-        multiplier: z.number().or(z.string().regex(/^[0-9]+(\.[0-9]+)?$/)),
-        description: z.string().optional(),
-        isActive: z.boolean().optional(),
-      });
-      
-      const validatedData = validationSchema.parse(multiplierData);
-      
-      // Create multiplier in database
-      const newMultiplier = await storage.createIncomeMultiplier({
-        source: validatedData.source,
-        multiplier: validatedData.multiplier.toString(),
-        description: validatedData.description,
-        isActive: validatedData.isActive,
-      });
-      
-      res.status(201).json(newMultiplier);
-    } catch (error) {
-      console.error("Error creating multiplier:", error);
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: "Invalid multiplier data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to create multiplier" });
-      }
-    }
-  }
-);
-
-// Update an income multiplier
+// Update a valuation
 valuationRouter.put(
-  "/multipliers/:id",
+  "/:id",
   authenticateJWT,
   async (req: Request & { user?: any }, res: Response) => {
     try {
-      // Check if user is admin
-      if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: "Unauthorized. Admin access required." });
+      const valuationId = parseInt(req.params.id);
+      const userId = req.user.userId;
+      
+      // Check if the valuation exists and belongs to the user
+      const existingValuation = await storage.getValuationById(valuationId);
+      
+      if (!existingValuation) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: "Valuation not found"
+          }
+        });
       }
       
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid multiplier ID" });
+      if (existingValuation.userId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            message: "You don't have permission to update this valuation"
+          }
+        });
       }
       
-      const multiplierData = req.body;
-      const validationSchema = z.object({
-        source: z.string().min(1).optional(),
-        multiplier: z.number().or(z.string().regex(/^[0-9]+(\.[0-9]+)?$/)).optional(),
-        description: z.string().optional(),
-        isActive: z.boolean().optional(),
+      // Update only the allowed fields
+      const updatedValuation = await storage.updateValuation(valuationId, {
+        name: req.body.name,
+        notes: req.body.notes,
+        updatedAt: new Date()
       });
       
-      const validatedData = validationSchema.parse(multiplierData);
-      
-      // Update multiplier in database
-      const updatedMultiplier = await storage.updateIncomeMultiplier(id, {
-        source: validatedData.source,
-        multiplier: validatedData.multiplier?.toString(),
-        description: validatedData.description,
-        isActive: validatedData.isActive,
+      res.json({
+        success: true,
+        data: updatedValuation
       });
-      
-      if (!updatedMultiplier) {
-        return res.status(404).json({ error: "Multiplier not found" });
-      }
-      
-      res.json(updatedMultiplier);
     } catch (error) {
-      console.error("Error updating multiplier:", error);
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: "Invalid multiplier data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to update multiplier" });
-      }
+      console.error("Error updating valuation:", error);
+      res.status(500).json({
+        success: false,
+        error: {
+          message: "Failed to update valuation"
+        }
+      });
     }
   }
 );
 
-// Delete an income multiplier
+// Delete a valuation
 valuationRouter.delete(
-  "/multipliers/:id",
+  "/:id",
   authenticateJWT,
   async (req: Request & { user?: any }, res: Response) => {
     try {
-      // Check if user is admin
-      if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: "Unauthorized. Admin access required." });
+      const valuationId = parseInt(req.params.id);
+      const userId = req.user.userId;
+      
+      // Check if the valuation exists and belongs to the user
+      const existingValuation = await storage.getValuationById(valuationId);
+      
+      if (!existingValuation) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: "Valuation not found"
+          }
+        });
       }
       
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid multiplier ID" });
+      if (existingValuation.userId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            message: "You don't have permission to delete this valuation"
+          }
+        });
       }
       
-      const success = await storage.deleteIncomeMultiplier(id);
+      // Delete the valuation
+      const success = await storage.deleteValuation(valuationId);
       
-      if (!success) {
-        return res.status(404).json({ error: "Multiplier not found" });
+      if (success) {
+        res.json({
+          success: true,
+          message: "Valuation deleted successfully"
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          error: {
+            message: "Failed to delete valuation"
+          }
+        });
       }
-      
-      res.status(204).end();
     } catch (error) {
-      console.error("Error deleting multiplier:", error);
-      res.status(500).json({ error: "Failed to delete multiplier" });
+      console.error("Error deleting valuation:", error);
+      res.status(500).json({
+        success: false,
+        error: {
+          message: "Failed to delete valuation"
+        }
+      });
     }
   }
 );

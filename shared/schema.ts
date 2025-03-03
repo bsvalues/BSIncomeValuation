@@ -61,11 +61,14 @@ export const incomes = pgTable("incomes", {
 export const valuations = pgTable("valuations", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
+  name: text("name").notNull(),
   totalAnnualIncome: numeric("total_annual_income", { precision: 12, scale: 2 }).notNull(),
   multiplier: numeric("multiplier", { precision: 5, scale: 2 }).notNull(),
   valuationAmount: numeric("valuation_amount", { precision: 15, scale: 2 }).notNull(),
+  incomeBreakdown: text("income_breakdown"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
   isActive: boolean("is_active").default(true).notNull(),
 });
 
@@ -127,9 +130,11 @@ export const insertIncomeSchema = createInsertSchema(incomes)
 export const insertValuationSchema = createInsertSchema(valuations)
   .pick({
     userId: true,
+    name: true,
     totalAnnualIncome: true,
     multiplier: true,
     valuationAmount: true,
+    incomeBreakdown: true,
     notes: true,
   })
   .extend({
