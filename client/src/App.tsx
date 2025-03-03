@@ -15,7 +15,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 
 // Private route component to protect authenticated routes
-function PrivateRoute({component: Component, ...rest}: {component: React.ComponentType, path: string}) {
+function PrivateRoute({ component: Component }: { component: React.ComponentType<any> }) {
   const [location, setLocation] = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
   
@@ -35,7 +35,7 @@ function PrivateRoute({component: Component, ...rest}: {component: React.Compone
       </div>
     </div>
   ) : isAuthenticated ? (
-    <Component {...rest} />
+    <Component />
   ) : null; // Will redirect in the useEffect
 }
 
@@ -47,13 +47,17 @@ function Router() {
       <Route path="/register" component={Register} />
       {/* Protected routes */}
       <Route path="/dashboard">
-        {(params) => <PrivateRoute component={Dashboard} path="/dashboard" />}
+        {() => <PrivateRoute component={Dashboard} />}
       </Route>
       <Route path="/valuation/new">
-        {(params) => <PrivateRoute component={ValuationForm} path="/valuation/new" />}
+        {() => <PrivateRoute component={ValuationForm} />}
       </Route>
       <Route path="/valuation/:id">
-        {(params) => <PrivateRoute component={ValuationResult} path={`/valuation/${params.id}`} />}
+        {(params) => {
+          // Create a wrapper component to pass the id parameter
+          const ValuationResultWithParams = () => <ValuationResult id={params.id} />;
+          return <PrivateRoute component={ValuationResultWithParams} />;
+        }}
       </Route>
       <Route component={NotFound} />
     </Switch>

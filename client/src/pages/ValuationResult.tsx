@@ -7,9 +7,15 @@ import { Valuation, Income } from "@shared/schema";
 import { ArrowLeft, Calendar, Download, BarChart3, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-export default function ValuationResult() {
-  const { id } = useParams();
-  const valuationId = parseInt(id);
+interface ValuationResultProps {
+  id?: string;
+}
+
+export default function ValuationResult({ id: propId }: ValuationResultProps = {}) {
+  // Use either the prop id or get it from the URL params
+  const params = useParams();
+  const id = propId || params.id;
+  const valuationId = parseInt(id || '0');
   const { toast } = useToast();
   
   // Hardcoded user ID for now - in a real app, this would come from auth

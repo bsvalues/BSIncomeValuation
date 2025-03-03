@@ -10,6 +10,20 @@ type User = {
   role: string;
 };
 
+// Auth response types
+type AuthResponse = {
+  user: User;
+  accessToken: string;
+  refreshToken: string;
+  error?: string;
+};
+
+type TokenResponse = {
+  accessToken: string;
+  refreshToken: string;
+  error?: string;
+};
+
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
@@ -29,7 +43,7 @@ type RegisterData = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+export const AuthProvider = ({ children }: {children: React.ReactNode}) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,10 +94,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       const refreshToken = localStorage.getItem('refreshToken');
       if (!refreshToken) return false;
       
-      const response = await apiRequest<{
-        accessToken: string;
-        refreshToken: string;
-      }>('/api/auth/refresh-token', {
+      const response = await apiRequest<TokenResponse>('/api/auth/refresh-token', {
         method: 'POST',
         body: JSON.stringify({ refreshToken }),
       });
@@ -130,7 +141,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const login = async (username: string, password: string) => {
     setError(null);
     try {
-      const response = await apiRequest('/api/auth/login', {
+      const response = await apiRequest<AuthResponse>('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ username, password }),
       });
@@ -162,7 +173,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const register = async (userData: RegisterData) => {
     setError(null);
     try {
-      const response = await apiRequest('/api/auth/register', {
+      const response = await apiRequest<AuthResponse>('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify(userData),
       });
@@ -192,7 +203,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     try {
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
-        await apiRequest('/api/auth/logout', {
+        await apiRequest<{success: boolean}>('/api/auth/logout', {
           method: 'POST',
           body: JSON.stringify({ refreshToken }),
         });
