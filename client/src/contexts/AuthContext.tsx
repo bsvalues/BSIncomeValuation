@@ -94,10 +94,13 @@ export const AuthProvider = ({ children }: {children: React.ReactNode}) => {
       const refreshToken = localStorage.getItem('refreshToken');
       if (!refreshToken) return false;
       
-      const response = await apiRequest<TokenResponse>('/api/auth/refresh-token', {
-        method: 'POST',
-        body: JSON.stringify({ refreshToken }),
-      });
+      const response = await apiRequest<TokenResponse>(
+        'POST',
+        '/api/auth/refresh-token', 
+        {
+          body: JSON.stringify({ refreshToken }),
+        }
+      );
       
       if (response && response.accessToken && response.refreshToken) {
         localStorage.setItem('accessToken', response.accessToken);
@@ -141,10 +144,13 @@ export const AuthProvider = ({ children }: {children: React.ReactNode}) => {
   const login = async (username: string, password: string) => {
     setError(null);
     try {
-      const response = await apiRequest<AuthResponse>('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ username, password }),
-      });
+      const response = await apiRequest<AuthResponse>(
+        'POST',
+        '/api/auth/login',
+        {
+          body: JSON.stringify({ username, password }),
+        }
+      );
       
       if (response.error) {
         setError(response.error);
@@ -173,10 +179,13 @@ export const AuthProvider = ({ children }: {children: React.ReactNode}) => {
   const register = async (userData: RegisterData) => {
     setError(null);
     try {
-      const response = await apiRequest<AuthResponse>('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(userData),
-      });
+      const response = await apiRequest<AuthResponse>(
+        'POST',
+        '/api/auth/register', 
+        {
+          body: JSON.stringify(userData),
+        }
+      );
       
       if (response.error) {
         setError(response.error);
@@ -203,10 +212,13 @@ export const AuthProvider = ({ children }: {children: React.ReactNode}) => {
     try {
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
-        await apiRequest<{success: boolean}>('/api/auth/logout', {
-          method: 'POST',
-          body: JSON.stringify({ refreshToken }),
-        });
+        await apiRequest<{success: boolean}>(
+          'POST',
+          '/api/auth/logout', 
+          {
+            body: JSON.stringify({ refreshToken }),
+          }
+        );
       }
     } catch (err) {
       console.error('Logout error:', err);
@@ -237,10 +249,11 @@ export const AuthProvider = ({ children }: {children: React.ReactNode}) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => {
+// Must be a named function, not an arrow function, for component exports
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}

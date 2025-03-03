@@ -37,8 +37,9 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
     }).format(Number(amount));
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateString: string | Date) => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -118,7 +119,7 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
               
               <div className="bg-slate-50 p-5 rounded-lg">
                 <p className="text-sm text-slate-500 mb-1">Multiplier</p>
-                <p className="text-2xl font-semibold text-slate-800">{valuation.multiplier.toFixed(2)}x</p>
+                <p className="text-2xl font-semibold text-slate-800">{Number(valuation.multiplier).toFixed(2)}x</p>
                 <p className="text-xs text-slate-500 mt-1">Weighted average based on income types</p>
               </div>
               
@@ -186,7 +187,7 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
               <p>
                 Your income valuation of <strong className="text-primary-700">{formatCurrency(valuation.valuationAmount)}</strong> represents 
                 the estimated capital value of your combined income streams. This is calculated by applying a weighted 
-                multiplier of <strong>{valuation.multiplier.toFixed(2)}x</strong> to your annual income.
+                multiplier of <strong>{Number(valuation.multiplier).toFixed(2)}x</strong> to your annual income.
               </p>
               
               <p>
