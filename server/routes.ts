@@ -24,6 +24,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register valuation routes
   router.use("/valuation", valuationRouter);
+  
+  // Income multipliers route
+  router.get("/multipliers", async (req: Request, res: Response) => {
+    try {
+      const multipliers = await storage.getAllIncomeMultipliers();
+      res.json(multipliers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve income multipliers" });
+    }
+  });
 
   // User routes
   router.post("/users", async (req: Request, res: Response) => {

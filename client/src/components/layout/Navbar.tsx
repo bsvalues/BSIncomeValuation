@@ -70,6 +70,11 @@ export default function Navbar() {
                     Dashboard
                   </div>
                 </Link>
+                <Link href="/calculator">
+                  <div className={`text-sm font-medium ${isActive('/calculator') ? 'text-white' : 'text-primary-100 hover:text-white'} transition cursor-pointer`}>
+                    Calculator
+                  </div>
+                </Link>
                 <Link href="/valuation/new">
                   <Button size="sm" className="bg-white text-primary-700 hover:bg-primary-50">
                     New Valuation
@@ -151,6 +156,14 @@ export default function Navbar() {
                       onClick={closeMenu}
                     >
                       Dashboard
+                    </div>
+                  </Link>
+                  <Link href="/calculator">
+                    <div 
+                      className={`px-2 py-1 rounded ${isActive('/calculator') ? 'bg-primary-600 text-white' : 'text-primary-100 hover:text-white'} cursor-pointer`}
+                      onClick={closeMenu}
+                    >
+                      Calculator
                     </div>
                   </Link>
                   <Link href="/valuation/new">

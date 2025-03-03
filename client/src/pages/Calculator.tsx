@@ -176,8 +176,6 @@ export default function Calculator() {
       };
       
       return apiRequest("POST", "/api/valuations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(valuationData)
       });
     },
