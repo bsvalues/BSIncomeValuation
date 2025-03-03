@@ -5,29 +5,61 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Valuation, Income } from "@shared/schema";
-import { BarChart3, Plus, Calendar, Trash2, CreditCard } from "lucide-react";
+import { BarChart3, Plus, Calendar, Trash2, CreditCard, TrendingUp, ArrowUpRight } from "lucide-react";
 import { IncomeChart } from "@/components/ui/income-chart";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+
+// Dashboard data types
+interface IncomeSummary {
+  source: string;
+  total: number;
+  count: number;
+  averageAmount: number;
+}
+
+interface DashboardData {
+  recentValuations: Valuation[];
+  incomeSummaryByType: IncomeSummary[];
+  totalMonthlyIncome: number;
+  totalAnnualIncome: number;
+  valuationCount: number;
+  incomeCount: number;
+  latestValuation: Valuation | null;
+}
 
 export default function Dashboard() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
-  
-  // Hardcoded user ID for now - in a real app, this would come from auth
-  const userId = 1;
 
+  // Get dashboard data
+  const { data: dashboardData, isLoading: dashboardLoading } = useQuery<DashboardData>({
+    queryKey: ['/api/dashboard'],
+    enabled: !!user,
+  });
+
+  // Get incomes and valuations for detailed tabs
   const { data: valuations, isLoading: valuationsLoading, refetch: refetchValuations } = useQuery<Valuation[]>({
-    queryKey: [`/api/users/${userId}/valuations`],
+    queryKey: [`/api/users/${user?.id}/valuations`],
+    enabled: !!user,
   });
 
   const { data: incomes, isLoading: incomesLoading, refetch: refetchIncomes } = useQuery<Income[]>({
-    queryKey: [`/api/users/${userId}/incomes`],
+    queryKey: [`/api/users/${user?.id}/incomes`],
+    enabled: !!user,
+  });
+  
+  // For detailed dashboard data
+  const { data: detailedData, isLoading: detailedLoading } = useQuery({
+    queryKey: ['/api/dashboard/detailed'],
+    enabled: !!user,
   });
 
   const handleDeleteValuation = async (id: number) => {
     try {
-      await apiRequest("DELETE", `/api/valuations/${id}`);
+      await apiRequest("DELETE", `/api/valuations/${id}`, {});
       toast({
         title: "Valuation deleted",
         description: "The valuation has been removed successfully",
@@ -44,7 +76,7 @@ export default function Dashboard() {
 
   const handleDeleteIncome = async (id: number) => {
     try {
-      await apiRequest("DELETE", `/api/incomes/${id}`);
+      await apiRequest("DELETE", `/api/incomes/${id}`, {});
       toast({
         title: "Income deleted",
         description: "The income source has been removed successfully",
@@ -67,8 +99,9 @@ export default function Dashboard() {
     }).format(Number(amount));
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateString: string | Date) => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -102,20 +135,123 @@ export default function Dashboard() {
           </TabsList>
           
           <TabsContent value="overview">
+            {/* Income and Valuation Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <Card className="bg-gradient-to-br from-primary-50 to-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="bg-primary-100 p-2 rounded-full">
+                      <CreditCard className="h-5 w-5 text-primary-600" />
+                    </div>
+                    <span className="text-xs font-medium text-primary-600 bg-primary-100 px-2 py-1 rounded-full">Monthly</span>
+                  </div>
+                  <h3 className="text-sm font-medium text-slate-500">Monthly Income</h3>
+                  {dashboardLoading ? (
+                    <div className="h-6 w-24 bg-slate-200 animate-pulse rounded mt-1"></div>
+                  ) : (
+                    <p className="text-2xl font-bold text-slate-800">
+                      {formatCurrency(dashboardData?.totalMonthlyIncome || 0)}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-gradient-to-br from-primary-50 to-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="bg-primary-100 p-2 rounded-full">
+                      <CreditCard className="h-5 w-5 text-primary-600" />
+                    </div>
+                    <span className="text-xs font-medium text-primary-600 bg-primary-100 px-2 py-1 rounded-full">Annual</span>
+                  </div>
+                  <h3 className="text-sm font-medium text-slate-500">Annual Income</h3>
+                  {dashboardLoading ? (
+                    <div className="h-6 w-24 bg-slate-200 animate-pulse rounded mt-1"></div>
+                  ) : (
+                    <p className="text-2xl font-bold text-slate-800">
+                      {formatCurrency(dashboardData?.totalAnnualIncome || 0)}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-gradient-to-br from-primary-50 to-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="bg-primary-100 p-2 rounded-full">
+                      <TrendingUp className="h-5 w-5 text-primary-600" />
+                    </div>
+                    <span className="text-xs font-medium text-primary-600 bg-primary-100 px-2 py-1 rounded-full">Latest</span>
+                  </div>
+                  <h3 className="text-sm font-medium text-slate-500">Latest Valuation</h3>
+                  {dashboardLoading ? (
+                    <div className="h-6 w-24 bg-slate-200 animate-pulse rounded mt-1"></div>
+                  ) : dashboardData?.latestValuation ? (
+                    <p className="text-2xl font-bold text-slate-800">
+                      {formatCurrency(dashboardData?.latestValuation?.valuationAmount || 0)}
+                    </p>
+                  ) : (
+                    <p className="text-lg text-slate-500">No valuation yet</p>
+                  )}
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-gradient-to-br from-primary-50 to-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="bg-primary-100 p-2 rounded-full">
+                      <BarChart3 className="h-5 w-5 text-primary-600" />
+                    </div>
+                    <span className="text-xs font-medium text-primary-600 bg-primary-100 px-2 py-1 rounded-full">Total</span>
+                  </div>
+                  <h3 className="text-sm font-medium text-slate-500">Income Sources</h3>
+                  {dashboardLoading ? (
+                    <div className="h-6 w-24 bg-slate-200 animate-pulse rounded mt-1"></div>
+                  ) : (
+                    <div className="flex items-end">
+                      <p className="text-2xl font-bold text-slate-800">{dashboardData?.incomeCount || 0}</p>
+                      <p className="text-sm text-slate-500 ml-2 mb-1">sources</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            
             <div className="grid md:grid-cols-2 gap-6 mb-8">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg text-primary-700">Income Summary</CardTitle>
-                  <CardDescription>Overview of your income sources</CardDescription>
+                  <CardTitle className="text-lg text-primary-700">Income Sources</CardTitle>
+                  <CardDescription>Breakdown by income type</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-4">
-                  {incomesLoading ? (
+                  {dashboardLoading ? (
                     <div className="h-[300px] flex items-center justify-center">
                       <p className="text-slate-500">Loading income data...</p>
                     </div>
-                  ) : incomes && incomes.length > 0 ? (
-                    <div className="h-[300px]">
-                      <IncomeChart data={incomes} />
+                  ) : dashboardData?.incomeSummaryByType && dashboardData.incomeSummaryByType.length > 0 ? (
+                    <div className="space-y-4">
+                      {dashboardData.incomeSummaryByType.map((summary) => (
+                        <div key={summary.source} className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <h4 className="text-sm font-medium text-slate-800 capitalize">{summary.source}</h4>
+                            <span className="text-sm font-medium text-primary-700">
+                              {formatCurrency(summary.total)}
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-2.5">
+                            <div 
+                              className="bg-primary-600 h-2.5 rounded-full" 
+                              style={{
+                                width: `${Math.min(100, (summary.total / dashboardData.totalAnnualIncome) * 100)}%`
+                              }}
+                            ></div>
+                          </div>
+                          <div className="flex justify-between text-xs text-slate-500">
+                            <span>{summary.count} sources</span>
+                            <span>Avg: {formatCurrency(summary.averageAmount)}</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="h-[300px] flex items-center justify-center">
@@ -132,15 +268,15 @@ export default function Dashboard() {
               
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg text-primary-700">Valuation History</CardTitle>
-                  <CardDescription>Track changes in your income valuation</CardDescription>
+                  <CardTitle className="text-lg text-primary-700">Recent Valuations</CardTitle>
+                  <CardDescription>Your latest valuation results</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-4">
-                  {valuationsLoading ? (
+                  {dashboardLoading ? (
                     <div className="h-[300px] flex items-center justify-center">
                       <p className="text-slate-500">Loading valuation data...</p>
                     </div>
-                  ) : valuations && valuations.length > 0 ? (
+                  ) : dashboardData?.recentValuations && dashboardData.recentValuations.length > 0 ? (
                     <div className="h-[300px] overflow-auto">
                       <table className="w-full border-collapse">
                         <thead>
@@ -150,7 +286,7 @@ export default function Dashboard() {
                           </tr>
                         </thead>
                         <tbody>
-                          {valuations.map((valuation) => (
+                          {dashboardData.recentValuations.map((valuation) => (
                             <tr key={valuation.id} className="border-b border-slate-100 hover:bg-slate-50">
                               <td className="py-3 px-2 text-sm text-slate-800">
                                 {formatDate(valuation.createdAt)}
@@ -182,13 +318,13 @@ export default function Dashboard() {
                 <CardTitle className="text-lg text-primary-700">Recent Activity</CardTitle>
               </CardHeader>
               <CardContent>
-                {valuationsLoading && incomesLoading ? (
+                {dashboardLoading ? (
                   <p className="text-slate-500">Loading recent activity...</p>
                 ) : (
                   <div className="space-y-4">
-                    {(valuations && valuations.length > 0) || (incomes && incomes.length > 0) ? (
+                    {(dashboardData?.recentValuations && dashboardData.recentValuations.length > 0) ? (
                       <div className="space-y-4">
-                        {valuations?.slice(0, 3).map((valuation) => (
+                        {dashboardData.recentValuations.slice(0, 3).map((valuation) => (
                           <div key={valuation.id} className="flex items-center gap-4 border-b border-slate-100 pb-4">
                             <div className="bg-primary-100 p-2 rounded-full">
                               <BarChart3 className="h-5 w-5 text-primary-600" />
@@ -199,23 +335,6 @@ export default function Dashboard() {
                             </div>
                             <div className="text-sm font-medium text-primary-700">
                               {formatCurrency(valuation.valuationAmount)}
-                            </div>
-                          </div>
-                        ))}
-                        
-                        {incomes?.slice(0, 3).map((income) => (
-                          <div key={income.id} className="flex items-center gap-4 border-b border-slate-100 pb-4">
-                            <div className="bg-primary-100 p-2 rounded-full">
-                              <CreditCard className="h-5 w-5 text-primary-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800">
-                                {income.source.charAt(0).toUpperCase() + income.source.slice(1)} Income Added
-                              </p>
-                              <p className="text-xs text-slate-500">{formatDate(income.createdAt)}</p>
-                            </div>
-                            <div className="text-sm font-medium text-primary-700">
-                              {formatCurrency(income.amount)} / {income.frequency}
                             </div>
                           </div>
                         ))}

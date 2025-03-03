@@ -5,6 +5,7 @@ import { insertUserSchema, insertIncomeSchema, insertValuationSchema } from "@sh
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { authRouter } from "./authRoutes";
+import { dashboardRouter } from "./dashboardRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const router = express.Router();
@@ -16,6 +17,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register auth routes
   router.use("/auth", authRouter);
+  
+  // Register dashboard routes
+  router.use("/dashboard", dashboardRouter);
 
   // User routes
   router.post("/users", async (req: Request, res: Response) => {
