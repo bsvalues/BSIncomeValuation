@@ -25,23 +25,23 @@ export default function Navbar() {
         <nav className="flex justify-between items-center">
           <div className="flex items-center">
             <Link href="/">
-              <a className="text-2xl font-bold text-white hover:text-primary-100 transition">
+              <div className="text-2xl font-bold text-white hover:text-primary-100 transition cursor-pointer">
                 Income Valuation SaaS
-              </a>
+              </div>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
             <Link href="/">
-              <a className={`text-sm font-medium ${isActive('/') ? 'text-white' : 'text-primary-100 hover:text-white'} transition`}>
+              <div className={`text-sm font-medium ${isActive('/') ? 'text-white' : 'text-primary-100 hover:text-white'} transition cursor-pointer`}>
                 Home
-              </a>
+              </div>
             </Link>
             <Link href="/dashboard">
-              <a className={`text-sm font-medium ${isActive('/dashboard') ? 'text-white' : 'text-primary-100 hover:text-white'} transition`}>
+              <div className={`text-sm font-medium ${isActive('/dashboard') ? 'text-white' : 'text-primary-100 hover:text-white'} transition cursor-pointer`}>
                 Dashboard
-              </a>
+              </div>
             </Link>
             <Link href="/valuation/new">
               <Button size="sm" className="bg-white text-primary-700 hover:bg-primary-50">
@@ -67,28 +67,28 @@ export default function Navbar() {
           <div className="md:hidden mt-4 pb-4">
             <div className="flex flex-col space-y-4">
               <Link href="/">
-                <a 
-                  className={`px-2 py-1 rounded ${isActive('/') ? 'bg-primary-600 text-white' : 'text-primary-100 hover:text-white'}`}
+                <div 
+                  className={`px-2 py-1 rounded ${isActive('/') ? 'bg-primary-600 text-white' : 'text-primary-100 hover:text-white'} cursor-pointer`}
                   onClick={closeMenu}
                 >
                   Home
-                </a>
+                </div>
               </Link>
               <Link href="/dashboard">
-                <a 
-                  className={`px-2 py-1 rounded ${isActive('/dashboard') ? 'bg-primary-600 text-white' : 'text-primary-100 hover:text-white'}`}
+                <div 
+                  className={`px-2 py-1 rounded ${isActive('/dashboard') ? 'bg-primary-600 text-white' : 'text-primary-100 hover:text-white'} cursor-pointer`}
                   onClick={closeMenu}
                 >
                   Dashboard
-                </a>
+                </div>
               </Link>
               <Link href="/valuation/new">
-                <a 
-                  className="px-2 py-1 bg-white text-primary-700 hover:bg-primary-50 rounded"
+                <div 
+                  className="px-2 py-1 bg-white text-primary-700 hover:bg-primary-50 rounded cursor-pointer"
                   onClick={closeMenu}
                 >
                   New Valuation
-                </a>
+                </div>
               </Link>
             </div>
           </div>
