@@ -3,6 +3,17 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Income multipliers configuration
+export const incomeMultipliers = pgTable("income_multipliers", {
+  id: serial("id").primaryKey(),
+  source: text("source").notNull().unique(),
+  multiplier: numeric("multiplier", { precision: 5, scale: 2 }).notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // User model for authentication
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -133,6 +144,19 @@ export const insertValuationSchema = createInsertSchema(valuations)
     ),
   });
 
+export const insertIncomeMultiplierSchema = createInsertSchema(incomeMultipliers)
+  .pick({
+    source: true,
+    multiplier: true,
+    description: true,
+    isActive: true,
+  })
+  .extend({
+    multiplier: z.union([z.string(), z.number()]).transform(val => 
+      typeof val === 'string' ? val : val.toString()
+    ),
+  });
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -142,3 +166,6 @@ export type InsertIncome = z.infer<typeof insertIncomeSchema>;
 
 export type Valuation = typeof valuations.$inferSelect;
 export type InsertValuation = z.infer<typeof insertValuationSchema>;
+
+export type IncomeMultiplier = typeof incomeMultipliers.$inferSelect;
+export type InsertIncomeMultiplier = z.infer<typeof insertIncomeMultiplierSchema>;
