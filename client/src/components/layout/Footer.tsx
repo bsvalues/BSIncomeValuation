@@ -20,16 +20,16 @@ export default function Footer() {
               <ul className="space-y-2 text-sm">
                 <li>
                   <Link href="/dashboard">
-                    <a className="text-slate-400 hover:text-white transition">
+                    <div className="text-slate-400 hover:text-white transition cursor-pointer">
                       Dashboard
-                    </a>
+                    </div>
                   </Link>
                 </li>
                 <li>
                   <Link href="/valuation/new">
-                    <a className="text-slate-400 hover:text-white transition">
+                    <div className="text-slate-400 hover:text-white transition cursor-pointer">
                       Create Valuation
-                    </a>
+                    </div>
                   </Link>
                 </li>
                 <li>
