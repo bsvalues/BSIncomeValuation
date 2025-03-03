@@ -53,6 +53,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  router.get("/incomes/:id", async (req: Request, res: Response) => {
+    try {
+      const incomeId = parseInt(req.params.id);
+      const income = await storage.getIncomeById(incomeId);
+      if (!income) {
+        return res.status(404).json({ error: "Income not found" });
+      }
+      res.json(income);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve income" });
+    }
+  });
+
   router.post("/incomes", async (req: Request, res: Response) => {
     try {
       const incomeData = insertIncomeSchema.parse(req.body);

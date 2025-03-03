@@ -20,6 +20,7 @@ export interface IStorage {
   
   // Income operations
   getIncomesByUserId(userId: number): Promise<Income[]>;
+  getIncomeById(id: number): Promise<Income | undefined>;
   createIncome(income: InsertIncome): Promise<Income>;
   updateIncome(id: number, income: Partial<InsertIncome>): Promise<Income | undefined>;
   deleteIncome(id: number): Promise<boolean>;
@@ -59,6 +60,14 @@ export class DatabaseStorage implements IStorage {
       .from(incomes)
       .where(eq(incomes.userId, userId))
       .orderBy(desc(incomes.createdAt));
+  }
+
+  async getIncomeById(id: number): Promise<Income | undefined> {
+    const [income] = await db
+      .select()
+      .from(incomes)
+      .where(eq(incomes.id, id));
+    return income;
   }
 
   async createIncome(income: InsertIncome): Promise<Income> {
