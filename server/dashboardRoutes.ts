@@ -39,11 +39,11 @@ dashboardRouter.get('/', authenticateJWT, async (req: Request & { user?: any }, 
     
     for (const income of incomes) {
       const source = income.source;
-      const amount = income.amount;
-      totalMonthlyIncome += amount;
+      const amount = parseFloat(income.amount);
+      totalMonthlyIncome += isNaN(amount) ? 0 : amount;
       
       const summary = incomeSummaryMap.get(source) || { total: 0, count: 0 };
-      summary.total += amount;
+      summary.total += isNaN(amount) ? 0 : amount;
       summary.count += 1;
       incomeSummaryMap.set(source, summary);
     }
@@ -161,7 +161,9 @@ dashboardRouter.get('/valuation/:id/summary', authenticateJWT, async (req: Reque
     // Parse income breakdown from JSON
     let incomeBreakdown = [];
     try {
-      incomeBreakdown = JSON.parse(valuation.incomeBreakdown);
+      if (valuation.incomeBreakdown) {
+        incomeBreakdown = JSON.parse(valuation.incomeBreakdown);
+      }
     } catch (err) {
       console.error("Error parsing income breakdown:", err);
     }

@@ -196,7 +196,6 @@ valuationRouter.put(
       
       // Update only the allowed fields
       const updatedValuation = await storage.updateValuation(valuationId, {
-        name: req.body.name,
         notes: req.body.notes,
         updatedAt: new Date()
       });
