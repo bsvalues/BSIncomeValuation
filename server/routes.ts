@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertUserSchema, insertIncomeSchema, insertValuationSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { authRouter } from "./authRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const router = express.Router();
@@ -12,6 +13,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   router.get("/health", (req: Request, res: Response) => {
     res.json({ message: "Income Valuation SaaS API is running!" });
   });
+  
+  // Register auth routes
+  router.use("/auth", authRouter);
 
   // User routes
   router.post("/users", async (req: Request, res: Response) => {
