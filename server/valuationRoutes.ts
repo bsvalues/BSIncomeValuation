@@ -94,9 +94,7 @@ valuationRouter.post(
         incomeBreakdown: JSON.stringify(valuationResult.incomeBreakdown),
         multiplier: valuationResult.weightedMultiplier.toString(),
         totalAnnualIncome: valuationResult.totalAnnualIncome.toString(),
-        notes: req.body.notes || "",
-        createdAt: new Date(),
-        updatedAt: new Date()
+        notes: req.body.notes || ""
       });
       
       res.status(201).json({
@@ -129,9 +127,7 @@ valuationRouter.post(
       // Validate the income data
       const incomeData = insertIncomeSchema.parse({
         ...req.body,
-        userId,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        userId
       });
       
       // Create the income
@@ -196,8 +192,7 @@ valuationRouter.put(
       
       // Update only the allowed fields
       const updatedValuation = await storage.updateValuation(valuationId, {
-        notes: req.body.notes,
-        updatedAt: new Date()
+        notes: req.body.notes
       });
       
       res.json({

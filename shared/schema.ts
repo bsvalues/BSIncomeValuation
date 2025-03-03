@@ -122,6 +122,8 @@ export const insertIncomeSchema = createInsertSchema(incomes)
     description: true,
   })
   .extend({
+    createdAt: z.date().optional(),
+    updatedAt: z.date().optional(),
     amount: z.union([z.string(), z.number()]).transform(val => 
       typeof val === 'string' ? val : val.toString()
     ),
