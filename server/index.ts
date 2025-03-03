@@ -61,9 +61,13 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client
-  const port = 5000;
+  // Use the PORT from .env, defaulting to 5000 if not provided
+  // Note: Replit expects port 5000, but the .env can override this
+  const port = parseInt(process.env.PORT || '5000', 10);
+  
+  // Test database connection before starting the server
+  await testConnection();
+  
   server.listen({
     port,
     host: "0.0.0.0",
