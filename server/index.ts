@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import dotenv from 'dotenv';
 import { testConnection } from './db.config';
 import { seedIncomeMultipliers } from './seed';
+import { errorHandler } from './errorHandler';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -45,38 +46,8 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  // Global error handler to standardize error responses
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    // Get status code
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-    
-    // Determine error type
-    const errorType = err.name || 'Error';
-    
-    // Additional details for development environment
-    const details = app.get('env') === 'development' 
-      ? {
-          stack: err.stack,
-          code: err.code,
-          ...(err.errors && { validationErrors: err.errors })
-        } 
-      : undefined;
-    
-    // Log the error
-    console.error(`Error (${status}): ${message}`, details || '');
-    
-    // Send standardized response
-    res.status(status).json({
-      success: false,
-      error: {
-        type: errorType,
-        message,
-        status,
-        ...(details && { details })
-      }
-    });
-  });
+  // Use the enhanced error handler
+  app.use(errorHandler);
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
