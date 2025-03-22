@@ -2,6 +2,24 @@ import { Income } from '../shared/schema';
 import { DataQualityAnalysis } from '../client/src/types/agent-types';
 
 /**
+ * Data issue representation for income analysis
+ */
+interface DataIssue {
+  type: string;
+  message: string;
+  affectedIds?: number[];
+  affectedGroups?: Income[][];
+}
+
+/**
+ * Suggested fix for data quality issues
+ */
+interface SuggestedFix {
+  type: string;
+  message: string;
+}
+
+/**
  * DataCleanerAgent - AI-powered agent for detecting and fixing anomalies in income data
  */
 export class DataCleanerAgent {
@@ -17,13 +35,9 @@ export class DataCleanerAgent {
     // 2. Use specific prompts to identify data quality issues
     // 3. Return structured results with suggestions
 
-    const issues: Array<{
-      type: string;
-      message: string;
-      affectedIds?: number[];
-      affectedGroups?: Income[][];
-    }> = [];
-    const suggestedFixes: Array<{type: string, message: string}> = [];
+    // Using interfaces defined at module level
+    const issues: DataIssue[] = [];
+    const suggestedFixes: SuggestedFix[] = [];
     
     // Check for missing descriptions
     const missingDescriptions = incomeData.filter(income => !income.description || income.description.trim() === '');
@@ -171,12 +185,7 @@ export class DataCleanerAgent {
    * @param totalRecords Total number of records analyzed
    * @returns Quality score from 0-100
    */
-  private calculateDataQualityScore(issues: Array<{
-    type: string;
-    message: string;
-    affectedIds?: number[];
-    affectedGroups?: Income[][];
-  }>, totalRecords: number): number {
+  private calculateDataQualityScore(issues: DataIssue[], totalRecords: number): number {
     if (totalRecords === 0) return 100;
     
     // Calculate how many records have issues
@@ -187,7 +196,7 @@ export class DataCleanerAgent {
         issue.affectedIds.forEach((id: number) => affectedRecords.add(id));
       } else if (issue.affectedGroups) {
         issue.affectedGroups.forEach((group: Income[]) => {
-          group.forEach(income => affectedRecords.add(income.id));
+          group.forEach((income: Income) => affectedRecords.add(income.id));
         });
       }
     });
