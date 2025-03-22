@@ -6,6 +6,9 @@ import { Separator } from "@/components/ui/separator";
 import { Valuation, Income } from "@shared/schema";
 import { ArrowLeft, Calendar, Download, BarChart3, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ApiError } from "@/components/ui/api-error";
+import ServerError from "@/pages/ServerError";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 interface ValuationResultProps {
   id?: string;
@@ -21,11 +24,23 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
   // Hardcoded user ID for now - in a real app, this would come from auth
   const userId = 1;
 
-  const { data: valuation, isLoading: valuationLoading } = useQuery<Valuation>({
+  const { 
+    data: valuation, 
+    isLoading: valuationLoading,
+    isError: isValuationError,
+    error: valuationError,
+    refetch: refetchValuation
+  } = useQuery<Valuation, Error>({
     queryKey: [`/api/valuations/${valuationId}`],
   });
 
-  const { data: incomes, isLoading: incomesLoading } = useQuery<Income[]>({
+  const { 
+    data: incomes, 
+    isLoading: incomesLoading,
+    isError: isIncomesError,
+    error: incomesError,
+    refetch: refetchIncomes
+  } = useQuery<Income[], Error>({
     queryKey: [`/api/users/${userId}/incomes`],
   });
 
@@ -62,19 +77,51 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
     });
   };
 
+  // Handle error states
+  if (isValuationError) {
+    // Handle server connection error
+    if (valuationError?.message.includes('Network Error') || valuationError?.message.includes('Failed to fetch')) {
+      return <ServerError 
+        message="We're having trouble connecting to the server. Please check your internet connection and try again." 
+        actionLink="/dashboard"
+      />;
+    }
+    
+    // Handle 404 Not Found
+    if (valuationError?.message.includes('404') || valuationError?.message.includes('Not Found')) {
+      return <ServerError 
+        statusCode={404}
+        message="The valuation you're looking for could not be found. It may have been deleted or the ID is incorrect." 
+        actionLink="/dashboard"
+        actionText="Return to Dashboard"
+      />;
+    }
+    
+    // Generic error
+    return <ServerError 
+      message={valuationError?.message || "An error occurred while loading the valuation data."} 
+      actionLink="/dashboard"
+    />;
+  }
+
+  // Handle loading state
   if (valuationLoading || !valuation) {
     return (
-      <div className="bg-slate-50 min-h-screen py-8">
-        <div className="max-w-4xl mx-auto px-4 text-center py-12">
-          <p className="text-slate-500">Loading valuation data...</p>
+      <ErrorBoundary>
+        <div className="bg-slate-50 min-h-screen py-8">
+          <div className="max-w-4xl mx-auto px-4 text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-slate-500">Loading valuation data...</p>
+          </div>
         </div>
-      </div>
+      </ErrorBoundary>
     );
   }
 
   return (
-    <div className="bg-slate-50 min-h-screen py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <ErrorBoundary>
+      <div className="bg-slate-50 min-h-screen py-8">
+        <div className="max-w-4xl mx-auto px-4">
         <div className="mb-6">
           <Link href="/dashboard">
             <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 -ml-3">
@@ -145,7 +192,19 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
           </CardHeader>
           <CardContent>
             {incomesLoading ? (
-              <p className="text-slate-500">Loading income data...</p>
+              <div className="flex items-center justify-center p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
+                <p className="text-slate-500">Loading income data...</p>
+              </div>
+            ) : isIncomesError ? (
+              <ErrorBoundary>
+                <ApiError
+                  title="Error Loading Income Data"
+                  error={incomesError}
+                  message="Unable to load your income sources. This information is required for a complete valuation analysis."
+                  onRetry={() => refetchIncomes()}
+                />
+              </ErrorBoundary>
             ) : incomes && incomes.length > 0 ? (
               <div className="space-y-4">
                 {incomes.map((income, index) => (
@@ -172,7 +231,14 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
                 ))}
               </div>
             ) : (
-              <p className="text-slate-500">No income sources found</p>
+              <div className="text-center p-6 bg-slate-50 rounded-lg">
+                <p className="text-slate-500 mb-2">No income sources found</p>
+                <Link href="/valuation/new">
+                  <Button variant="outline" size="sm">
+                    Add Income Sources
+                  </Button>
+                </Link>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -220,5 +286,6 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
         </Card>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }
