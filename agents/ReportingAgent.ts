@@ -162,7 +162,7 @@ export class ReportingAgent {
    * Private helper methods below
    */
   
-  private getDataByPeriod(valuations: Valuation[], period: ReportingPeriod) {
+  private getDataByPeriod(valuations: Valuation[], period: ReportingPeriod): Record<string, Valuation[]> {
     // Group valuations by the specified period
     const periodData: Record<string, Valuation[]> = {};
     
@@ -193,7 +193,15 @@ export class ReportingAgent {
     return periodData;
   }
   
-  private calculateMetrics(incomes: Income[], valuations: Valuation[]) {
+  private calculateMetrics(incomes: Income[], valuations: Valuation[]): {
+    totalMonthlyIncome: number;
+    totalAnnualIncome: number;
+    weightedMultiplier: number;
+    latestValuationAmount: number;
+    incomeSourceCount: number;
+    incomeStreamCount: number;
+    annualGrowthRate: number;
+  } {
     // Current values
     const latestValuation = valuations.length > 0 
       ? valuations[valuations.length - 1] 
@@ -248,7 +256,15 @@ export class ReportingAgent {
   private generateInsights(
     incomes: Income[], 
     valuations: Valuation[], 
-    metrics: any
+    metrics: {
+      totalMonthlyIncome: number;
+      totalAnnualIncome: number;
+      weightedMultiplier: number;
+      latestValuationAmount: number;
+      incomeSourceCount: number;
+      incomeStreamCount: number;
+      annualGrowthRate: number;
+    }
   ): ValuationInsight[] {
     const insights: ValuationInsight[] = [];
     
@@ -301,7 +317,15 @@ export class ReportingAgent {
   private generateRecommendations(
     incomes: Income[], 
     valuations: Valuation[], 
-    metrics: any
+    metrics: {
+      totalMonthlyIncome: number;
+      totalAnnualIncome: number;
+      weightedMultiplier: number;
+      latestValuationAmount: number;
+      incomeSourceCount: number;
+      incomeStreamCount: number;
+      annualGrowthRate: number;
+    }
   ): ReportRecommendation[] {
     const recommendations: ReportRecommendation[] = [];
     
@@ -393,7 +417,7 @@ export class ReportingAgent {
     incomes: Income[], 
     valuations: Valuation[], 
     period: ReportingPeriod
-  ) {
+  ): { valuationHistory: Array<{ date: Date; amount: string }>, incomeBreakdown: Array<{ source: string; amount: number }> } {
     // Prepare data for charts based on the period
     
     // Valuation over time chart
@@ -432,7 +456,18 @@ export class ReportingAgent {
     };
   }
   
-  private generateSummary(metrics: any, insights: ValuationInsight[]) {
+  private generateSummary(
+    metrics: {
+      totalMonthlyIncome: number;
+      totalAnnualIncome: number;
+      weightedMultiplier: number;
+      latestValuationAmount: number;
+      incomeSourceCount: number;
+      incomeStreamCount: number;
+      annualGrowthRate: number;
+    }, 
+    insights: ValuationInsight[]
+  ): string {
     // Generate a concise summary from metrics and key insights
     let summary = `Current valuation: $${metrics.latestValuationAmount.toLocaleString()}`;
     

@@ -17,7 +17,12 @@ export class DataCleanerAgent {
     // 2. Use specific prompts to identify data quality issues
     // 3. Return structured results with suggestions
 
-    const issues: Array<any> = [];
+    const issues: Array<{
+      type: string;
+      message: string;
+      affectedIds?: number[];
+      affectedGroups?: Income[][];
+    }> = [];
     const suggestedFixes: Array<{type: string, message: string}> = [];
     
     // Check for missing descriptions
@@ -166,7 +171,12 @@ export class DataCleanerAgent {
    * @param totalRecords Total number of records analyzed
    * @returns Quality score from 0-100
    */
-  private calculateDataQualityScore(issues: any[], totalRecords: number): number {
+  private calculateDataQualityScore(issues: Array<{
+    type: string;
+    message: string;
+    affectedIds?: number[];
+    affectedGroups?: Income[][];
+  }>, totalRecords: number): number {
     if (totalRecords === 0) return 100;
     
     // Calculate how many records have issues
