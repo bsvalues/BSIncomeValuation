@@ -111,12 +111,14 @@ export class ReportingAgent {
     const metrics = this.calculateMetrics(incomeData, sortedValuations);
     
     // Generate a simple summary based on the calculated metrics
-    let summary = `Your latest valuation is $${latestValuation.valuationAmount.toLocaleString()}`;
+    const latestAmount = parseFloat(latestValuation.valuationAmount);
+    let summary = `Your latest valuation is $${latestAmount.toLocaleString()}`;
     
     if (sortedValuations.length > 1) {
       const previousValuation = sortedValuations[sortedValuations.length - 2];
-      const change = latestValuation.valuationAmount - previousValuation.valuationAmount;
-      const percentChange = (change / previousValuation.valuationAmount) * 100;
+      const prevAmount = parseFloat(previousValuation.valuationAmount);
+      const change = latestAmount - prevAmount;
+      const percentChange = (change / prevAmount) * 100;
       
       summary += `, which is ${percentChange >= 0 ? 'up' : 'down'} ${Math.abs(percentChange).toFixed(1)}% from your previous valuation`;
     }
@@ -142,7 +144,7 @@ export class ReportingAgent {
       let highestSourceName = '';
       
       for (const [source, incomes] of Object.entries(incomeBySource)) {
-        const total = incomes.reduce((sum, income) => sum + income.amount, 0);
+        const total = incomes.reduce((sum, income) => sum + parseFloat(income.amount), 0);
         if (total > highestSourceTotal) {
           highestSourceTotal = total;
           highestSourceName = source;
@@ -402,7 +404,7 @@ export class ReportingAgent {
     // Income by source breakdown
     const incomeBySource = incomes.reduce((acc, income) => {
       // Normalize to annual amounts
-      let annualAmount = income.amount;
+      let annualAmount = parseFloat(income.amount);
       if (income.frequency === 'monthly') {
         annualAmount *= 12;
       } else if (income.frequency === 'weekly') {
