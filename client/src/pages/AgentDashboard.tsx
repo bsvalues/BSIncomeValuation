@@ -1,0 +1,676 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ChevronRight, LineChart, Lightbulb, AlertTriangle, FileText } from "lucide-react";
+
+export default function AgentDashboard() {
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("insights");
+
+  // Valuation analysis query
+  const { 
+    data: incomeAnalysis, 
+    isLoading: isLoadingAnalysis,
+    isError: isErrorAnalysis,
+    refetch: refetchAnalysis
+  } = useQuery({
+    queryKey: ['/api/agents/analyze-income'],
+    enabled: isAuthenticated,
+    refetchOnWindowFocus: false,
+  });
+
+  // Anomaly detection query
+  const { 
+    data: anomalyData, 
+    isLoading: isLoadingAnomalies,
+    isError: isErrorAnomalies,
+    refetch: refetchAnomalies
+  } = useQuery({
+    queryKey: ['/api/agents/detect-anomalies'],
+    enabled: isAuthenticated,
+    refetchOnWindowFocus: false,
+  });
+
+  // Data quality query
+  const { 
+    data: dataQualityAnalysis, 
+    isLoading: isLoadingDataQuality,
+    isError: isErrorDataQuality,
+    refetch: refetchDataQuality
+  } = useQuery({
+    queryKey: ['/api/agents/analyze-data-quality'],
+    enabled: isAuthenticated,
+    refetchOnWindowFocus: false,
+  });
+
+  // Valuation summary query
+  const { 
+    data: valuationSummary, 
+    isLoading: isLoadingSummary,
+    isError: isErrorSummary,
+    refetch: refetchSummary
+  } = useQuery({
+    queryKey: ['/api/agents/valuation-summary'],
+    enabled: isAuthenticated,
+    refetchOnWindowFocus: false,
+  });
+
+  // Report generation mutation
+  const { 
+    mutate: generateReport, 
+    isPending: isGeneratingReport 
+  } = useMutation({
+    mutationFn: async (reportOptions: any) => {
+      return await apiRequest('/api/agents/generate-report', {
+        method: 'POST',
+        body: JSON.stringify(reportOptions),
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Report Generated",
+        description: "Your detailed valuation report has been created successfully.",
+      });
+      setReportData(data);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to generate report. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const [reportData, setReportData] = useState<any>(null);
+  const [reportOptions, setReportOptions] = useState({
+    period: 'monthly',
+    includeCharts: true,
+    includeInsights: true,
+    includeRecommendations: true,
+  });
+
+  const handleGenerateReport = () => {
+    generateReport(reportOptions);
+  };
+
+  const handleRefreshAll = () => {
+    refetchAnalysis();
+    refetchAnomalies();
+    refetchDataQuality();
+    refetchSummary();
+    toast({
+      title: "Refreshing Data",
+      description: "Retrieving the latest AI insights for your data.",
+    });
+  };
+
+  return (
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">AI Agent Dashboard</h1>
+        <Button onClick={handleRefreshAll}>
+          Refresh All Insights
+        </Button>
+      </div>
+      
+      <p className="text-muted-foreground mb-8">
+        Gain powerful insights into your income and valuation data through our AI-powered agents
+      </p>
+
+      <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-4 mb-8">
+          <TabsTrigger value="insights">Valuation Insights</TabsTrigger>
+          <TabsTrigger value="anomalies">Anomaly Detection</TabsTrigger>
+          <TabsTrigger value="quality">Data Quality</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
+        </TabsList>
+
+        {/* Valuation Insights Tab */}
+        <TabsContent value="insights" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Lightbulb className="mr-2 h-5 w-5" />
+                Valuation Summary
+              </CardTitle>
+              <CardDescription>
+                AI-generated overview of your current valuation status
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingSummary ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-[90%]" />
+                  <Skeleton className="h-4 w-[80%]" />
+                </div>
+              ) : isErrorSummary ? (
+                <Alert variant="destructive">
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>
+                    Unable to load valuation summary. You may need to create valuations first.
+                  </AlertDescription>
+                </Alert>
+              ) : valuationSummary ? (
+                <div className="prose max-w-none">
+                  <p className="text-lg">{valuationSummary.summary}</p>
+                </div>
+              ) : (
+                <Alert>
+                  <AlertTitle>No Data</AlertTitle>
+                  <AlertDescription>
+                    Add income sources and create valuations to get AI insights.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" onClick={() => refetchSummary()}>
+                Refresh
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <LineChart className="mr-2 h-5 w-5" />
+                Income Analysis
+              </CardTitle>
+              <CardDescription>
+                Detailed analysis of your income sources and potential
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingAnalysis ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-[90%]" />
+                  <Skeleton className="h-4 w-[85%]" />
+                  <Skeleton className="h-4 w-[80%]" />
+                </div>
+              ) : isErrorAnalysis ? (
+                <Alert variant="destructive">
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>
+                    Unable to analyze income. You may need to add income sources first.
+                  </AlertDescription>
+                </Alert>
+              ) : incomeAnalysis ? (
+                <div className="space-y-4">
+                  {incomeAnalysis.analysis && (
+                    <>
+                      <div>
+                        <h3 className="font-medium mb-2">Key Findings</h3>
+                        <ul className="list-disc pl-5 space-y-1">
+                          {incomeAnalysis.analysis.findings.map((finding: string, index: number) => (
+                            <li key={index}>{finding}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div>
+                        <h3 className="font-medium mb-2">Income Distribution</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          {incomeAnalysis.analysis.distribution.map((item: any, index: number) => (
+                            <div key={index} className="flex justify-between">
+                              <span className="font-medium">{item.source}:</span>
+                              <span>{item.percentage}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div>
+                        <h3 className="font-medium mb-2">Recommendations</h3>
+                        <ul className="list-disc pl-5 space-y-1">
+                          {incomeAnalysis.analysis.recommendations.map((rec: string, index: number) => (
+                            <li key={index}>{rec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <Alert>
+                  <AlertTitle>No Data</AlertTitle>
+                  <AlertDescription>
+                    Add income sources to get AI analysis.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" onClick={() => refetchAnalysis()}>
+                Refresh Analysis
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        {/* Anomaly Detection Tab */}
+        <TabsContent value="anomalies">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <AlertTriangle className="mr-2 h-5 w-5" />
+                Valuation Anomalies
+              </CardTitle>
+              <CardDescription>
+                AI-detected unusual patterns in your valuation history
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingAnomalies ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-[90%]" />
+                  <Skeleton className="h-4 w-[80%]" />
+                </div>
+              ) : isErrorAnomalies ? (
+                <Alert variant="destructive">
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>
+                    Unable to detect anomalies. You need at least two valuations for anomaly detection.
+                  </AlertDescription>
+                </Alert>
+              ) : anomalyData ? (
+                <div className="space-y-4">
+                  {anomalyData.anomalies && anomalyData.anomalies.length > 0 ? (
+                    <div>
+                      <h3 className="font-medium mb-2">Detected Anomalies</h3>
+                      <div className="space-y-4">
+                        {anomalyData.anomalies.map((anomaly: any, index: number) => (
+                          <Alert key={index} variant={anomaly.severity === 'high' ? 'destructive' : 'default'}>
+                            <AlertTitle className="flex items-center">
+                              {anomaly.type} <span className="ml-2 text-sm bg-primary/20 px-2 py-0.5 rounded">{anomaly.severity} severity</span>
+                            </AlertTitle>
+                            <AlertDescription>
+                              <p>{anomaly.description}</p>
+                              {anomaly.recommendation && (
+                                <div className="mt-2">
+                                  <span className="font-medium">Recommendation:</span> {anomaly.recommendation}
+                                </div>
+                              )}
+                            </AlertDescription>
+                          </Alert>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <Alert>
+                      <AlertTitle>No Anomalies Detected</AlertTitle>
+                      <AlertDescription>
+                        Your valuation history appears consistent with no unusual patterns.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {anomalyData.insights && (
+                    <div className="mt-6">
+                      <h3 className="font-medium mb-2">Trend Insights</h3>
+                      <ul className="list-disc pl-5 space-y-2">
+                        {anomalyData.insights.map((insight: string, index: number) => (
+                          <li key={index}>{insight}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Alert>
+                  <AlertTitle>Insufficient Data</AlertTitle>
+                  <AlertDescription>
+                    You need at least two valuations to detect anomalies. Create more valuations to enable this feature.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" onClick={() => refetchAnomalies()}>
+                Refresh Anomalies
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        {/* Data Quality Tab */}
+        <TabsContent value="quality">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <AlertTriangle className="mr-2 h-5 w-5" />
+                Data Quality Assessment
+              </CardTitle>
+              <CardDescription>
+                AI analysis of your income data quality and potential issues
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingDataQuality ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-[90%]" />
+                  <Skeleton className="h-4 w-[85%]" />
+                </div>
+              ) : isErrorDataQuality ? (
+                <Alert variant="destructive">
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>
+                    Unable to analyze data quality. You may need to add income data first.
+                  </AlertDescription>
+                </Alert>
+              ) : dataQualityAnalysis ? (
+                <div className="space-y-6">
+                  {dataQualityAnalysis.qualityScore !== undefined && (
+                    <div className="mb-6">
+                      <h3 className="font-medium mb-2">Overall Data Quality Score</h3>
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-full border-4 flex items-center justify-center text-xl font-bold" 
+                          style={{ 
+                            borderColor: dataQualityAnalysis.qualityScore > 80 ? 'green' : 
+                                       dataQualityAnalysis.qualityScore > 60 ? 'orange' : 'red'
+                          }}>
+                          {dataQualityAnalysis.qualityScore}
+                        </div>
+                        <div>
+                          <div className="text-sm text-muted-foreground">
+                            {dataQualityAnalysis.qualityScore > 80 ? 'Excellent' : 
+                             dataQualityAnalysis.qualityScore > 60 ? 'Good' : 'Needs Improvement'}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Based on {dataQualityAnalysis.totalRecords} income records
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {dataQualityAnalysis.issues && dataQualityAnalysis.issues.length > 0 ? (
+                    <div>
+                      <h3 className="font-medium mb-2">Detected Issues</h3>
+                      <div className="space-y-4">
+                        {dataQualityAnalysis.issues.map((issue: any, index: number) => (
+                          <Alert key={index} variant={issue.severity === 'high' ? 'destructive' : 'default'}>
+                            <AlertTitle>{issue.type}</AlertTitle>
+                            <AlertDescription>
+                              <p>{issue.description}</p>
+                              {issue.affectedRecords && (
+                                <div className="mt-1 text-sm text-muted-foreground">
+                                  Affects {issue.affectedRecords} {issue.affectedRecords === 1 ? 'record' : 'records'}
+                                </div>
+                              )}
+                              {issue.recommendation && (
+                                <div className="mt-2">
+                                  <span className="font-medium">Suggested Fix:</span> {issue.recommendation}
+                                </div>
+                              )}
+                            </AlertDescription>
+                          </Alert>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <Alert>
+                      <AlertTitle>No Issues Detected</AlertTitle>
+                      <AlertDescription>
+                        Your income data appears to be clean and consistent.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {dataQualityAnalysis.potentialDuplicates && dataQualityAnalysis.potentialDuplicates.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="font-medium mb-2">Potential Duplicate Entries</h3>
+                      <Alert>
+                        <AlertTitle>We found {dataQualityAnalysis.potentialDuplicates.length} potential duplicate groups</AlertTitle>
+                        <AlertDescription>
+                          Review these similar entries and consider removing duplicates to improve data quality.
+                        </AlertDescription>
+                      </Alert>
+                      {/* We could add detailed duplicate info here if needed */}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Alert>
+                  <AlertTitle>No Data</AlertTitle>
+                  <AlertDescription>
+                    Add income sources to get data quality analysis.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" onClick={() => refetchDataQuality()}>
+                Refresh Analysis
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        {/* Reports Tab */}
+        <TabsContent value="reports">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <FileText className="mr-2 h-5 w-5" />
+                Generate Comprehensive Report
+              </CardTitle>
+              <CardDescription>
+                Create detailed valuation reports with customizable options
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Time Period</label>
+                    <select 
+                      className="w-full rounded-md border border-input bg-background px-3 py-2"
+                      value={reportOptions.period}
+                      onChange={(e) => setReportOptions({...reportOptions, period: e.target.value})}
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium">Include in Report</label>
+                    
+                    <div className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        id="includeCharts"
+                        checked={reportOptions.includeCharts}
+                        onChange={(e) => setReportOptions({...reportOptions, includeCharts: e.target.checked})}
+                        className="rounded border-gray-300"
+                      />
+                      <label htmlFor="includeCharts">Charts & Visualizations</label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        id="includeInsights"
+                        checked={reportOptions.includeInsights}
+                        onChange={(e) => setReportOptions({...reportOptions, includeInsights: e.target.checked})}
+                        className="rounded border-gray-300"
+                      />
+                      <label htmlFor="includeInsights">AI Insights</label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        id="includeRecommendations"
+                        checked={reportOptions.includeRecommendations}
+                        onChange={(e) => setReportOptions({...reportOptions, includeRecommendations: e.target.checked})}
+                        className="rounded border-gray-300"
+                      />
+                      <label htmlFor="includeRecommendations">Recommendations</label>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-4">
+                    <Button 
+                      onClick={handleGenerateReport}
+                      disabled={isGeneratingReport}
+                      className="w-full"
+                    >
+                      {isGeneratingReport ? "Generating..." : "Generate Report"}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="border rounded-md p-4 bg-muted/50">
+                  <h3 className="font-medium mb-2">What's Included</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex">
+                      <ChevronRight className="h-4 w-4 mr-1 shrink-0 mt-0.5" />
+                      <span><span className="font-medium">Valuation Metrics:</span> Comprehensive breakdown of your valuation calculations</span>
+                    </li>
+                    <li className="flex">
+                      <ChevronRight className="h-4 w-4 mr-1 shrink-0 mt-0.5" />
+                      <span><span className="font-medium">Period Analysis:</span> Data broken down by your selected time period</span>
+                    </li>
+                    <li className="flex">
+                      <ChevronRight className="h-4 w-4 mr-1 shrink-0 mt-0.5" />
+                      <span><span className="font-medium">AI Insights:</span> Detailed observations about your income and valuation trends</span>
+                    </li>
+                    <li className="flex">
+                      <ChevronRight className="h-4 w-4 mr-1 shrink-0 mt-0.5" />
+                      <span><span className="font-medium">Recommendations:</span> Actionable advice to improve your valuation</span>
+                    </li>
+                    <li className="flex">
+                      <ChevronRight className="h-4 w-4 mr-1 shrink-0 mt-0.5" />
+                      <span><span className="font-medium">Charts:</span> Visual representations of key data points</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              
+              {reportData && (
+                <div className="mt-8 border-t pt-6">
+                  <h3 className="text-xl font-bold mb-4">Report Results</h3>
+                  
+                  <div className="prose max-w-none">
+                    <div className="bg-muted p-4 rounded-md mb-4">
+                      <h4 className="font-medium">Summary</h4>
+                      <p>{reportData.summary}</p>
+                    </div>
+                    
+                    {reportData.metrics && (
+                      <div className="mb-6">
+                        <h4 className="font-medium mb-2">Key Metrics</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <div className="bg-muted p-3 rounded-md">
+                            <div className="text-sm text-muted-foreground">Total Annual Income</div>
+                            <div className="text-lg font-bold">${reportData.metrics.totalAnnualIncome.toLocaleString()}</div>
+                          </div>
+                          <div className="bg-muted p-3 rounded-md">
+                            <div className="text-sm text-muted-foreground">Weighted Multiplier</div>
+                            <div className="text-lg font-bold">{reportData.metrics.weightedMultiplier.toFixed(2)}x</div>
+                          </div>
+                          <div className="bg-muted p-3 rounded-md">
+                            <div className="text-sm text-muted-foreground">Latest Valuation</div>
+                            <div className="text-lg font-bold">${reportData.metrics.latestValuationAmount.toLocaleString()}</div>
+                          </div>
+                          <div className="bg-muted p-3 rounded-md">
+                            <div className="text-sm text-muted-foreground">Income Sources</div>
+                            <div className="text-lg font-bold">{reportData.metrics.incomeSourceCount}</div>
+                          </div>
+                          <div className="bg-muted p-3 rounded-md">
+                            <div className="text-sm text-muted-foreground">Income Streams</div>
+                            <div className="text-lg font-bold">{reportData.metrics.incomeStreamCount}</div>
+                          </div>
+                          <div className="bg-muted p-3 rounded-md">
+                            <div className="text-sm text-muted-foreground">Annual Growth Rate</div>
+                            <div className="text-lg font-bold">{(reportData.metrics.annualGrowthRate * 100).toFixed(1)}%</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {reportData.insights && reportData.insights.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="font-medium mb-2">Key Insights</h4>
+                        <div className="space-y-3">
+                          {reportData.insights.map((insight: any, index: number) => (
+                            <div 
+                              key={index} 
+                              className={`p-3 rounded-md ${
+                                insight.type === 'positive' ? 'bg-green-100 text-green-800' : 
+                                insight.type === 'negative' ? 'bg-red-100 text-red-800' : 
+                                'bg-blue-100 text-blue-800'
+                              }`}
+                            >
+                              <div className="flex justify-between">
+                                <div>{insight.message}</div>
+                                <div className="text-xs font-medium">
+                                  {insight.importance === 'high' ? 'HIGH' : 
+                                   insight.importance === 'medium' ? 'MEDIUM' : 'LOW'}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {reportData.recommendations && reportData.recommendations.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="font-medium mb-2">Recommendations</h4>
+                        <div className="space-y-4">
+                          {reportData.recommendations.map((rec: any, index: number) => (
+                            <div key={index} className="bg-muted p-4 rounded-md">
+                              <div className="flex justify-between">
+                                <h5 className="font-medium">{rec.title}</h5>
+                                <span className="text-xs font-medium">
+                                  {rec.priority === 'high' ? 'HIGH PRIORITY' : 
+                                   rec.priority === 'medium' ? 'MEDIUM PRIORITY' : 'LOW PRIORITY'}
+                                </span>
+                              </div>
+                              <p className="mt-1">{rec.description}</p>
+                              {rec.actionItems && rec.actionItems.length > 0 && (
+                                <div className="mt-2">
+                                  <div className="text-sm font-medium">Action Items:</div>
+                                  <ul className="list-disc pl-5 text-sm">
+                                    {rec.actionItems.map((item: string, i: number) => (
+                                      <li key={i}>{item}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

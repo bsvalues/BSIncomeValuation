@@ -11,6 +11,7 @@ import ValuationForm from "@/pages/ValuationForm";
 import ValuationResult from "@/pages/ValuationResult";
 import Calculator from "@/pages/Calculator";
 import DevDocs from "@/pages/DevDocs";
+import AgentDashboard from "@/pages/AgentDashboard";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -56,6 +57,9 @@ function Router() {
       </Route>
       <Route path="/calculator">
         {() => <PrivateRoute component={Calculator} />}
+      </Route>
+      <Route path="/ai-agents">
+        {() => <PrivateRoute component={AgentDashboard} />}
       </Route>
       <Route path="/valuation/new">
         {() => <PrivateRoute component={ValuationForm} />}
