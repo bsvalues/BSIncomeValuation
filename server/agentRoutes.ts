@@ -77,8 +77,17 @@ agentRouter.get(
       throw new NotFoundError('Insufficient valuation history for anomaly detection. You need at least two valuations to detect anomalies.');
     }
 
-    const results = await valuationAgent.detectAnomalies(valuations);
-    return res.json(results);
+    try {
+      const results = await valuationAgent.detectAnomalies(valuations);
+      return res.json(results);
+    } catch (error: any) {
+      if (error.message.includes('Valuation history must be')) {
+        throw new Error('Anomaly detection failed: Invalid valuation data format');
+      } else {
+        // Re-throw with a more user-friendly message
+        throw new Error(`Anomaly detection failed: ${error.message}`);
+      }
+    }
   })
 );
 
