@@ -62,6 +62,9 @@ function Router() {
       <Route path="/ai-agents">
         {() => <PrivateRoute component={AgentDashboard} />}
       </Route>
+      <Route path="/agent-dashboard">
+        {() => <PrivateRoute component={AgentDashboard} />}
+      </Route>
       <Route path="/valuation/new">
         {() => <PrivateRoute component={ValuationForm} />}
       </Route>
