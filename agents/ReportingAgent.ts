@@ -199,13 +199,13 @@ export class ReportingAgent {
     // Income metrics
     const totalMonthlyIncome = incomes.reduce((total, income) => {
       // Convert all income to monthly
-      let monthlyAmount = income.amount;
+      let monthlyAmount = parseFloat(income.amount);
       if (income.frequency === 'yearly') {
-        monthlyAmount = income.amount / 12;
+        monthlyAmount = monthlyAmount / 12;
       } else if (income.frequency === 'weekly') {
-        monthlyAmount = income.amount * 4.33;
+        monthlyAmount = monthlyAmount * 4.33;
       } else if (income.frequency === 'daily') {
-        monthlyAmount = income.amount * 30;
+        monthlyAmount = monthlyAmount * 30;
       }
       return total + monthlyAmount;
     }, 0);
@@ -213,19 +213,21 @@ export class ReportingAgent {
     const totalAnnualIncome = totalMonthlyIncome * 12;
     
     // Valuation metrics
-    const weightedMultiplier = latestValuation ? latestValuation.valuationAmount / totalAnnualIncome : 0;
+    const weightedMultiplier = latestValuation ? parseFloat(latestValuation.valuationAmount) / totalAnnualIncome : 0;
     
     // Growth metrics
     let growthRate = 0;
     if (valuations.length >= 2) {
       const firstValuation = valuations[0];
       const lastValuation = valuations[valuations.length - 1];
+      const firstAmount = parseFloat(firstValuation.valuationAmount);
+      const lastAmount = parseFloat(lastValuation.valuationAmount);
       const timeDiff = new Date(lastValuation.createdAt).getTime() - new Date(firstValuation.createdAt).getTime();
       const yearsDiff = timeDiff / (1000 * 60 * 60 * 24 * 365);
       
-      if (yearsDiff > 0) {
+      if (yearsDiff > 0 && firstAmount > 0) {
         // Compound Annual Growth Rate (CAGR)
-        growthRate = Math.pow(lastValuation.valuationAmount / firstValuation.valuationAmount, 1 / yearsDiff) - 1;
+        growthRate = Math.pow(lastAmount / firstAmount, 1 / yearsDiff) - 1;
       }
     }
     
@@ -233,7 +235,7 @@ export class ReportingAgent {
       totalMonthlyIncome,
       totalAnnualIncome,
       weightedMultiplier,
-      latestValuationAmount: latestValuation ? latestValuation.valuationAmount : 0,
+      latestValuationAmount: latestValuation ? parseFloat(latestValuation.valuationAmount) : 0,
       incomeSourceCount: new Set(incomes.map(i => i.source)).size,
       incomeStreamCount: incomes.length,
       annualGrowthRate: growthRate
@@ -251,8 +253,10 @@ export class ReportingAgent {
     if (valuations.length >= 2) {
       const lastValuation = valuations[valuations.length - 1];
       const previousValuation = valuations[valuations.length - 2];
-      const change = lastValuation.valuationAmount - previousValuation.valuationAmount;
-      const percentChange = (change / previousValuation.valuationAmount) * 100;
+      const lastAmount = parseFloat(lastValuation.valuationAmount);
+      const prevAmount = parseFloat(previousValuation.valuationAmount);
+      const change = lastAmount - prevAmount;
+      const percentChange = (change / prevAmount) * 100;
       
       insights.push({
         type: percentChange >= 0 ? 'positive' : 'negative',

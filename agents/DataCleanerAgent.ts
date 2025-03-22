@@ -35,14 +35,14 @@ export class DataCleanerAgent {
     }
     
     // Check for unusual amounts (outliers)
-    const amounts = incomeData.map(i => i.amount);
+    const amounts = incomeData.map(i => parseFloat(i.amount));
     const avgAmount = amounts.reduce((sum, amount) => sum + amount, 0) / amounts.length;
     const stdDev = Math.sqrt(
       amounts.reduce((sum, amount) => sum + Math.pow(amount - avgAmount, 2), 0) / amounts.length
     );
     
     const outliers = incomeData.filter(income => 
-      Math.abs(income.amount - avgAmount) > stdDev * 2 // More than 2 standard deviations
+      Math.abs(parseFloat(income.amount) - avgAmount) > stdDev * 2 // More than 2 standard deviations
     );
     
     if (outliers.length > 0) {
@@ -99,11 +99,14 @@ export class DataCleanerAgent {
       for (let j = i + 1; j < incomeData.length; j++) {
         const other = incomeData[j];
         
+        const currentAmount = parseFloat(current.amount);
+        const otherAmount = parseFloat(other.amount);
+        
         // Consider entries similar if they have the same source and similar amounts
         if (
           current.source === other.source &&
           current.frequency === other.frequency &&
-          Math.abs(current.amount - other.amount) < (current.amount * 0.05) // Within 5%
+          Math.abs(currentAmount - otherAmount) < (currentAmount * 0.05) // Within 5%
         ) {
           similars.push(other);
           checked.add(other.id);

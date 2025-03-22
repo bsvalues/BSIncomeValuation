@@ -18,13 +18,13 @@ export class ValuationAgent {
 
     const totalMonthlyIncome = incomeData.reduce((total, income) => {
       // Convert all income to monthly
-      let monthlyAmount = income.amount;
+      let monthlyAmount = parseFloat(income.amount);
       if (income.frequency === 'yearly') {
-        monthlyAmount = income.amount / 12;
+        monthlyAmount = monthlyAmount / 12;
       } else if (income.frequency === 'weekly') {
-        monthlyAmount = income.amount * 4.33;
+        monthlyAmount = monthlyAmount * 4.33;
       } else if (income.frequency === 'daily') {
-        monthlyAmount = income.amount * 30;
+        monthlyAmount = monthlyAmount * 30;
       }
       return total + monthlyAmount;
     }, 0);
@@ -71,8 +71,8 @@ export class ValuationAgent {
     // Calculate percentage changes
     const changes = [];
     for (let i = 1; i < sortedValuations.length; i++) {
-      const prevValue = sortedValuations[i - 1].valuationAmount;
-      const currValue = sortedValuations[i].valuationAmount;
+      const prevValue = parseFloat(sortedValuations[i - 1].valuationAmount);
+      const currValue = parseFloat(sortedValuations[i].valuationAmount);
       const percentChange = ((currValue - prevValue) / prevValue) * 100;
       changes.push({
         from: sortedValuations[i - 1].createdAt,
