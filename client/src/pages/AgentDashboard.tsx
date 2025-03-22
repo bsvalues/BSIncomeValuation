@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { ApiError } from "@/components/ui/api-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight, LineChart, Lightbulb, AlertTriangle, FileText } from "lucide-react";
 
@@ -275,12 +276,12 @@ export default function AgentDashboard() {
                   <Skeleton className="h-4 w-[80%]" />
                 </div>
               ) : isErrorSummary ? (
-                <Alert variant="destructive">
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>
-                    {summaryError?.message || "Unable to load valuation summary. You may need to create valuations first."}
-                  </AlertDescription>
-                </Alert>
+                <ApiError
+                  title="Valuation Summary Failed"
+                  error={summaryError}
+                  message="Unable to load valuation summary. You may need to create valuations first."
+                  onRetry={() => refetchSummary()}
+                />
               ) : valuationSummary ? (
                 <div className="prose max-w-none">
                   <p className="text-lg">{valuationSummary.summary}</p>
@@ -320,12 +321,12 @@ export default function AgentDashboard() {
                   <Skeleton className="h-4 w-[80%]" />
                 </div>
               ) : isErrorAnalysis ? (
-                <Alert variant="destructive">
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>
-                    {analysisError?.message || "Unable to analyze income. You may need to add income sources first."}
-                  </AlertDescription>
-                </Alert>
+                <ApiError
+                  title="Income Analysis Failed"
+                  error={analysisError}
+                  message="Unable to analyze income. You may need to add income sources first."
+                  onRetry={() => refetchAnalysis()}
+                />
               ) : incomeAnalysis ? (
                 <div className="space-y-4">
                   {incomeAnalysis.analysis && (
@@ -403,12 +404,12 @@ export default function AgentDashboard() {
                   <Skeleton className="h-4 w-[80%]" />
                 </div>
               ) : isErrorAnomalies ? (
-                <Alert variant="destructive">
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>
-                    {anomalyError?.message || "Unable to detect anomalies. You need at least two valuations for anomaly detection."}
-                  </AlertDescription>
-                </Alert>
+                <ApiError
+                  title="Anomaly Detection Failed"
+                  error={anomalyError}
+                  message="Unable to detect anomalies. You need at least two valuations for anomaly detection."
+                  onRetry={() => refetchAnomalies()}
+                />
               ) : anomalyData ? (
                 <div className="space-y-4">
                   {anomalyData.anomalies && anomalyData.anomalies.length > 0 ? (
@@ -489,12 +490,12 @@ export default function AgentDashboard() {
                   <Skeleton className="h-4 w-[85%]" />
                 </div>
               ) : isErrorDataQuality ? (
-                <Alert variant="destructive">
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>
-                    {dataQualityError?.message || "Unable to analyze data quality. You may need to add income data first."}
-                  </AlertDescription>
-                </Alert>
+                <ApiError
+                  title="Data Quality Analysis Failed"
+                  error={dataQualityError}
+                  message="Unable to analyze data quality. You may need to add income data first."
+                  onRetry={() => refetchDataQuality()}
+                />
               ) : dataQualityAnalysis ? (
                 <div className="space-y-6">
                   {dataQualityAnalysis.qualityScore !== undefined && (
