@@ -7,6 +7,7 @@ import { fromZodError } from "zod-validation-error";
 import { authRouter } from "./authRoutes";
 import { dashboardRouter } from "./dashboardRoutes";
 import { valuationRouter } from "./valuationRoutes";
+import { agentRouter } from "./agentRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const router = express.Router();
@@ -24,6 +25,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register valuation routes
   router.use("/valuation", valuationRouter);
+  
+  // Register AI agent routes
+  router.use("/agents", agentRouter);
   
   // Income multipliers route
   router.get("/multipliers", async (req: Request, res: Response) => {
