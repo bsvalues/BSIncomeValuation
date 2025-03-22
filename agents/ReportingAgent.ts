@@ -1,4 +1,5 @@
 import { Income, Valuation } from '../shared/schema';
+import { ValuationReport, ValuationSummary } from '../client/src/types/agent-types';
 
 type ReportingPeriod = 'monthly' | 'quarterly' | 'yearly';
 
@@ -37,7 +38,7 @@ export class ReportingAgent {
     incomeData: Income[], 
     valuationHistory: Valuation[],
     options: Partial<ReportOptions> = {}
-  ) {
+  ): Promise<ValuationReport> {
     // Apply default options
     const reportOptions: ReportOptions = {
       period: options.period || 'monthly',
@@ -91,7 +92,7 @@ export class ReportingAgent {
    * @param valuationHistory Array of valuation records
    * @returns Generated summary text
    */
-  async generateValuationSummary(incomeData: Income[], valuationHistory: Valuation[]) {
+  async generateValuationSummary(incomeData: Income[], valuationHistory: Valuation[]): Promise<ValuationSummary> {
     // This is a placeholder for future AI implementation
     // In a real implementation, this would:
     // 1. Call an LLM API with the income and valuation data

@@ -10,15 +10,15 @@ export class DataCleanerAgent {
    * @param incomeData Array of income records
    * @returns Object containing analysis results, issues found, and suggested fixes
    */
-  async analyzeIncomeData(incomeData: Income[]) {
+  async analyzeIncomeData(incomeData: Income[]): Promise<DataQualityAnalysis> {
     // This is a placeholder for future AI implementation
     // In a real implementation, this would:
     // 1. Call an LLM API with the income data
     // 2. Use specific prompts to identify data quality issues
     // 3. Return structured results with suggestions
 
-    const issues = [];
-    const suggestedFixes = [];
+    const issues: Array<any> = [];
+    const suggestedFixes: Array<{type: string, message: string}> = [];
     
     // Check for missing descriptions
     const missingDescriptions = incomeData.filter(income => !income.description || income.description.trim() === '');
@@ -60,12 +60,12 @@ export class DataCleanerAgent {
     }
     
     // Check for duplicate entries
-    const potentialDuplicates = this.findPotentialDuplicates(incomeData);
-    if (potentialDuplicates.length > 0) {
+    const duplicateGroups = this.findPotentialDuplicates(incomeData);
+    if (duplicateGroups.length > 0) {
       issues.push({
         type: 'potential_duplicates',
-        message: `Found ${potentialDuplicates.length} potential duplicate income entries`,
-        affectedGroups: potentialDuplicates
+        message: `Found ${duplicateGroups.length} potential duplicate income entries`,
+        affectedGroups: duplicateGroups
       });
       
       suggestedFixes.push({
@@ -74,11 +74,47 @@ export class DataCleanerAgent {
       });
     }
     
+    // Format issues according to the interface
+    const formattedIssues = issues.map(issue => {
+      let severity: 'high' | 'medium' | 'low';
+      
+      if (issue.type === 'potential_duplicates') {
+        severity = 'high';
+      } else if (issue.type === 'outlier_amounts') {
+        severity = 'medium';
+      } else {
+        severity = 'low';
+      }
+      
+      return {
+        type: issue.type,
+        severity,
+        description: issue.message,
+        affectedRecords: issue.affectedIds?.length || issue.affectedGroups?.flat().length || 0,
+        recommendation: suggestedFixes.find(fix => fix.type.includes(issue.type.split('_')[0]))?.message || undefined
+      };
+    });
+    
+    // Format potential duplicates
+    const formattedDuplicates = duplicateGroups.map((group, index) => {
+      return {
+        group: index + 1,
+        records: group.map(income => {
+          return {
+            id: income.id,
+            source: income.source,
+            amount: income.amount,
+            similarity: 1.0 - (index * 0.1) // Mock similarity score
+          };
+        })
+      };
+    });
+    
     return {
-      totalIncomeEntries: incomeData.length,
-      issues,
-      suggestedFixes,
-      dataQualityScore: this.calculateDataQualityScore(issues, incomeData.length)
+      qualityScore: this.calculateDataQualityScore(issues, incomeData.length),
+      totalRecords: incomeData.length,
+      issues: formattedIssues,
+      potentialDuplicates: formattedDuplicates
     };
   }
   

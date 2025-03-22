@@ -109,8 +109,8 @@ export class ValuationAgent {
       
       return {
         type: `Sudden ${isIncrease ? 'Increase' : 'Decrease'}`,
-        severity: Math.abs(change.percentChange) > 50 ? 'high' : 
-                 Math.abs(change.percentChange) > 30 ? 'medium' : 'low',
+        severity: Math.abs(change.percentChange) > 50 ? 'high' as const : 
+                 Math.abs(change.percentChange) > 30 ? 'medium' as const : 'low' as const,
         description: `${isIncrease ? 'Increase' : 'Decrease'} of ${absChange}% between ${dateFrom} and ${dateTo}`,
         recommendation: `Review changes in income sources during this period to understand the ${isIncrease ? 'growth' : 'decline'}`
       };
