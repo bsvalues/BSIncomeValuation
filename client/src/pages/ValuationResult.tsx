@@ -1,14 +1,17 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "wouter";
+import { Link, useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Valuation, Income } from "@shared/schema";
-import { ArrowLeft, Calendar, Download, BarChart3, Share2 } from "lucide-react";
+import { ArrowLeft, Calendar, Download, BarChart3, Share2, AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError } from "@/components/ui/api-error";
 import ServerError from "@/pages/ServerError";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ValuationResultProps {
   id?: string;
@@ -20,10 +23,11 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
   const id = propId || params.id;
   const valuationId = parseInt(id || '0');
   const { toast } = useToast();
+  const [location, setLocation] = useLocation();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   
-  // Hardcoded user ID for now - in a real app, this would come from auth
-  const userId = 1;
-
+  // Get valuation data
   const { 
     data: valuation, 
     isLoading: valuationLoading,
@@ -32,8 +36,11 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
     refetch: refetchValuation
   } = useQuery<Valuation, Error>({
     queryKey: [`/api/valuations/${valuationId}`],
+    enabled: !!valuationId && isAuthenticated,
+    retry: 2,
   });
 
+  // Get income data for the user
   const { 
     data: incomes, 
     isLoading: incomesLoading,
@@ -41,8 +48,21 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
     error: incomesError,
     refetch: refetchIncomes
   } = useQuery<Income[], Error>({
-    queryKey: [`/api/users/${userId}/incomes`],
+    queryKey: user ? [`/api/users/${user.id}/incomes`] : null,
+    enabled: !!user && isAuthenticated,
+    retry: 1,
   });
+  
+  // If user is not authenticated and auth loading is complete, redirect to login
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to view valuation details",
+      });
+      setLocation("/login");
+    }
+  }, [authLoading, isAuthenticated, setLocation, toast]);
 
   const formatCurrency = (amount: number | string) => {
     return new Intl.NumberFormat('en-US', { 
@@ -62,28 +82,67 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
   };
 
   const handleShareClick = () => {
-    // In a real app, this would generate a shareable link
-    navigator.clipboard.writeText(window.location.href);
-    toast({
-      title: "Link copied",
-      description: "Valuation link copied to clipboard",
-    });
+    try {
+      // In a real app, this would generate a shareable link
+      navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: "Link copied",
+        description: "Valuation link copied to clipboard",
+      });
+    } catch (error) {
+      console.error("Error copying to clipboard:", error);
+      toast({
+        title: "Error",
+        description: "Could not copy link to clipboard",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDownloadPDF = () => {
-    toast({
-      title: "Coming soon",
-      description: "PDF download functionality will be available soon",
-    });
+    setDownloadError(null);
+    try {
+      // This would be implemented to generate an actual PDF
+      toast({
+        title: "Coming soon",
+        description: "PDF download functionality will be available soon",
+      });
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      setDownloadError("Could not generate PDF report. Please try again later.");
+    }
   };
+  
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="bg-slate-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-slate-600">Verifying your session...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Handle error states
   if (isValuationError) {
-    // Handle server connection error
+    // Handle server error (500)
+    if (valuationError?.message.includes('500')) {
+      return <ServerError 
+        statusCode={500}
+        message="We're having trouble retrieving this valuation from our servers. Our team has been notified of this issue." 
+        actionLink="/dashboard"
+        actionText="Return to Dashboard"
+      />;
+    }
+    
+    // Handle connection error
     if (valuationError?.message.includes('Network Error') || valuationError?.message.includes('Failed to fetch')) {
       return <ServerError 
         message="We're having trouble connecting to the server. Please check your internet connection and try again." 
         actionLink="/dashboard"
+        actionText="Return to Dashboard"
       />;
     }
     
@@ -97,24 +156,34 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
       />;
     }
     
+    // Handle unauthorized error
+    if (valuationError?.message.includes('401') || valuationError?.message.includes('403') || 
+        valuationError?.message.includes('Unauthorized') || valuationError?.message.includes('Forbidden')) {
+      return <ServerError 
+        statusCode={403}
+        message="You don't have permission to view this valuation." 
+        actionLink="/dashboard"
+        actionText="Return to Dashboard"
+      />;
+    }
+    
     // Generic error
     return <ServerError 
       message={valuationError?.message || "An error occurred while loading the valuation data."} 
       actionLink="/dashboard"
+      actionText="Return to Dashboard"
     />;
   }
 
   // Handle loading state
   if (valuationLoading || !valuation) {
     return (
-      <ErrorBoundary>
-        <div className="bg-slate-50 min-h-screen py-8">
-          <div className="max-w-4xl mx-auto px-4 text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-slate-500">Loading valuation data...</p>
-          </div>
+      <div className="bg-slate-50 min-h-screen py-8">
+        <div className="max-w-4xl mx-auto px-4 text-center py-12">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-slate-500">Loading valuation data...</p>
         </div>
-      </ErrorBoundary>
+      </div>
     );
   }
 
@@ -130,6 +199,14 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
               </Button>
             </Link>
           </div>
+          
+          {downloadError && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{downloadError}</AlertDescription>
+            </Alert>
+          )}
           
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <div>
@@ -193,18 +270,18 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
             <CardContent>
               {incomesLoading ? (
                 <div className="flex items-center justify-center p-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
                   <p className="text-slate-500">Loading income data...</p>
                 </div>
               ) : isIncomesError ? (
-                <ErrorBoundary>
+                <div className="p-4">
                   <ApiError
                     title="Error Loading Income Data"
                     error={incomesError}
                     message="Unable to load your income sources. This information is required for a complete valuation analysis."
                     onRetry={() => refetchIncomes()}
                   />
-                </ErrorBoundary>
+                </div>
               ) : incomes && incomes.length > 0 ? (
                 <div className="space-y-4">
                   {incomes.map((income, index) => (
