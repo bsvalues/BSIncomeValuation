@@ -1,144 +1,120 @@
-# Income Valuation SaaS Platform
+# 📊 IncomeValuationTracker — AI-Powered Development Guide
 
-A comprehensive Income Valuation SaaS platform that provides detailed financial insights and analysis for professionals, enabling users to understand and maximize their income potential.
+**Build a Full-Stack AI LLM-powered income valuation tracking app with:**
 
-## Features
+---
 
-- **Advanced Valuation Engine**: Calculate personal valuations based on multiple income sources with type-specific multipliers
-- **Interactive Calculator**: Real-time valuation calculation with adjustable income sources
-- **Income Management**: Track and manage different income sources with detailed information
-- **Historical Tracking**: Store and visualize valuation history over time
-- **User Authentication**: Secure JWT-based authentication system
-- **Responsive Dashboard**: Modern, responsive interface displaying key financial metrics
+### 🧠 Dynamic Roadmap & Task Tracking
+- Kanban board integration (Trello or custom)
+- Auto-updating task statuses via commits/AI actions
+- Modules: Income Data, Valuation Models, User Roles, Reporting
 
-## Tech Stack
+---
 
-- **Frontend**: React with TypeScript, Tailwind CSS, React Query
-- **Backend**: Node.js with Express
-- **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: JWT-based auth with refresh tokens
-- **Data Visualization**: Recharts for interactive charts
-- **Styling**: Tailwind CSS with shadcn/ui components
-- **Testing**: Jest + Supertest for unit and integration tests
+### 🗂 Modular Folder Structure
+- `/client/src/pages/`: Main page components
+- `/client/src/components/`: UI like `IncomeTable`, `ValuationChart`
+- `/client/src/lib/`: Utilities and helpers
+- `/client/src/hooks/`: Custom React hooks
+- `/client/src/contexts/`: Context providers
+- `/server/`: Express backend API
+- `/shared/`: Shared code (frontend & backend)
+- `/agents/`: AI agents like `ValuationAgent`, `DataCleaner`
 
-## Core Valuation Logic
+---
 
-The platform uses a sophisticated valuation algorithm based on income type multipliers:
+### ⚙️ Dev Runtime
+- Hot reloading with the "Start application" workflow
+- Works in VSCode or Replit Dev Env
+- Nix ready
 
-| Income Source | Multiplier | Description                        |
-|---------------|------------|-----------------------------------|
-| Rental        | 5.0x       | Income from property rentals       |
-| Investment    | 4.0x       | Returns from investments           |
-| Business      | 3.5x       | Income from business ownership     |
-| Salary        | 2.5x       | Regular employment income          |
-| Freelance     | 2.0x       | Independent contractor work        |
-| Other         | 1.5x       | Miscellaneous income sources       |
+---
 
-The calculation process includes:
+### 🧪 AI-Driven Debugging
+- `AnomalyDetector` agent can flag valuation inconsistencies
+- GPT-powered unit tests for scenarios
+- Live tracing & feedback from AI agents
 
-1. Converting all income to annual amounts based on frequency
-2. Applying the appropriate multiplier based on income source
-3. Calculating a weighted multiplier based on income distribution
-4. Computing the final valuation as total annual income × weighted multiplier
+---
 
-## Getting Started
+### 📚 Documentation
+- `/docs/dev`: Live markdown rendered
+- API documentation and examples
+- Prompt recipes for testing agents
 
-### Prerequisites
+---
 
-- Node.js 18+
-- PostgreSQL 14+
+### 🧩 AI Modular Plugins
+- Drop-in strategy pattern agents
+- Expand valuation types without breaking core logic
 
-### Installation
+---
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Set up the environment variables in `.env` file
-4. Initialize the database:
-   ```bash
-   npm run db:push
-   ```
-5. Start the development server:
-   ```bash
-   npm run dev
-   ```
+### 🧠 Playground & Self-Learning
+- Prompt test UI
+- Export results to JSON or PDF
+- Auto-learn from edge cases in dev mode
 
-## API Endpoints
+---
 
-### Authentication
-- `POST /auth/register` - Create a new user account
-- `POST /auth/login` - Authenticate a user
-- `POST /auth/refresh-token` - Refresh authentication token
-- `POST /auth/logout` - Logout user
+### 📦 Deployment
+- Works with Nix, Docker
+- Replit-native with `.replit` and `replit.nix`
+- Deployable to AWS/GCP
 
-### Incomes
-- `GET /api/users/:userId/incomes` - Get all incomes for a user
-- `GET /api/incomes/:id` - Get a specific income
-- `POST /api/incomes` - Create a new income
-- `PUT /api/incomes/:id` - Update an existing income
-- `DELETE /api/incomes/:id` - Delete an income
+---
 
-### Valuations
-- `GET /api/users/:userId/valuations` - Get all valuations for a user
-- `GET /api/valuations/:id` - Get a specific valuation
-- `POST /api/valuations` - Create a new valuation
-- `PUT /api/valuations/:id` - Update an existing valuation
-- `DELETE /api/valuations/:id` - Delete a valuation
+### ✅ One-liner Prompt
+> "Assist in enhancing IncomeValuationTracker, a React-based app for income valuation. Build AI agents to process, clean, and value data. Modular structure, hot reload, and React-native features."
 
-### Dashboard
-- `GET /api/dashboard` - Get dashboard data for the authenticated user
-- `GET /api/dashboard/detailed` - Get detailed dashboard data
+---
 
-## Testing
+## Adding AI Agents
 
-The project includes comprehensive test coverage:
+To add AI capabilities to the application:
 
-```bash
-# Run all tests
-./run-all-tests.sh
+1. Create a new `/agents` directory in the project root
+2. Implement agent classes for different functions:
+   - `ValuationAgent`: Analyzes income data and generates valuation models
+   - `DataCleanerAgent`: Detects and fixes anomalies in income data
+   - `ReportingAgent`: Generates insights and reports from valuations
 
-# Run only unit tests
-./run-unit-tests.sh
+Example agent structure:
 
-# Run only integration tests
-./run-integration-tests.sh
+```typescript
+// Example of a basic AI agent
+export class ValuationAgent {
+  async analyzeIncome(incomeData) {
+    // Call external AI API or use local model
+    // Process the data
+    // Return insights and recommended valuations
+  }
+
+  async detectAnomalies(valuationHistory) {
+    // Identify patterns or inconsistencies
+    // Flag potential issues
+  }
+}
 ```
 
-## Project Structure
+## Implementing AI Features
 
-```
-.
-├── client/                # React frontend
-│   ├── src/
-│   │   ├── components/    # UI components
-│   │   ├── contexts/      # Context providers 
-│   │   ├── hooks/         # Custom React hooks
-│   │   ├── lib/           # Utility functions
-│   │   └── pages/         # Page components
-├── server/                # Express backend
-│   ├── auth.ts            # Authentication utils
-│   ├── routes.ts          # API routes
-│   ├── storage.ts         # Database access layer
-│   └── errorHandler.ts    # Error handling
-├── shared/                # Shared code (frontend & backend)
-│   └── schema.ts          # Database schema and types
-└── __tests__/             # Test files
-    ├── integration/       # API integration tests
-    ├── unit/              # Unit tests
-    └── mocks/             # Test mocks
-```
+Key AI features to consider:
 
-## Error Handling
+1. **Income Pattern Analysis**: Detect trends and seasonality in income data
+2. **Valuation Model Optimization**: Use AI to refine multipliers for different income types
+3. **Anomaly Detection**: Identify unusual changes in income or valuations
+4. **Predictive Forecasting**: Project future income and valuations
+5. **Natural Language Reports**: Generate readable insights from numeric data
 
-The application implements a comprehensive error handling system with:
+## Development Workflow
 
-- Custom error classes for different error types
-- Standardized error responses for all API endpoints
-- Validation errors with detailed field-level feedback
-- Client-side error handling with toast notifications
+1. Start with core functionality implementation
+2. Add AI agent interfaces and mock implementations
+3. Integrate with actual AI services (OpenAI, etc.)
+4. Create feedback loops for model improvement
+5. Add user-facing controls for AI features
 
-## License
+---
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This guide will be updated as the project evolves!

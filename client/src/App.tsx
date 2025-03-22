@@ -10,10 +10,12 @@ import Register from "@/pages/Register";
 import ValuationForm from "@/pages/ValuationForm";
 import ValuationResult from "@/pages/ValuationResult";
 import Calculator from "@/pages/Calculator";
+import DevDocs from "@/pages/DevDocs";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
+import { AIDevBadge } from "@/components/AIDevBadge";
 
 // Private route component to protect authenticated routes
 function PrivateRoute({ component: Component }: { component: React.ComponentType<any> }) {
@@ -46,6 +48,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      {/* Dev docs route - only available in development */}
+      <Route path="/docs/dev" component={DevDocs} />
       {/* Protected routes */}
       <Route path="/dashboard">
         {() => <PrivateRoute component={Dashboard} />}
@@ -80,6 +84,8 @@ function App() {
           <Footer />
         </div>
         <Toaster />
+        {/* Dev badge - only visible in development mode */}
+        <AIDevBadge />
       </AuthProvider>
     </QueryClientProvider>
   );
