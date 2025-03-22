@@ -17,6 +17,7 @@ import Footer from "./components/layout/Footer";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { AIDevBadge } from "@/components/AIDevBadge";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Private route component to protect authenticated routes
 function PrivateRoute({ component: Component }: { component: React.ComponentType<any> }) {
@@ -80,16 +81,18 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="flex flex-col min-h-screen">
-          <Navbar />
-          <main className="flex-grow">
-            <Router />
-          </main>
-          <Footer />
-        </div>
-        <Toaster />
-        {/* Dev badge - only visible in development mode */}
-        <AIDevBadge />
+        <ErrorBoundary>
+          <div className="flex flex-col min-h-screen">
+            <Navbar />
+            <main className="flex-grow">
+              <Router />
+            </main>
+            <Footer />
+          </div>
+          <Toaster />
+          {/* Dev badge - only visible in development mode */}
+          <AIDevBadge />
+        </ErrorBoundary>
       </AuthProvider>
     </QueryClientProvider>
   );

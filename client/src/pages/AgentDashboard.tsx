@@ -142,88 +142,104 @@ export default function AgentDashboard() {
     });
   };
   
+  // Consolidated error handling utility function
+  const handleApiError = (
+    error: Error | null, 
+    title: string, 
+    defaultMessage: string,
+    errorPatterns: Record<string, string>
+  ) => {
+    if (!error) return;
+    
+    let errorMessage = defaultMessage;
+    
+    if (error.message) {
+      // Check if error message matches any of our known patterns
+      for (const [pattern, message] of Object.entries(errorPatterns)) {
+        if (error.message.includes(pattern)) {
+          errorMessage = message;
+          break;
+        }
+      }
+      
+      // If no specific pattern matched, use the full error message
+      if (errorMessage === defaultMessage) {
+        errorMessage = `Error: ${error.message}`;
+      }
+    }
+    
+    toast({
+      title,
+      description: errorMessage,
+      variant: "destructive",
+    });
+  };
+  
   // Error handling effects
   useEffect(() => {
     if (isErrorAnalysis && analysisError) {
-      let errorMessage = "Failed to analyze income data. Please try again.";
-      
-      if (analysisError.message) {
-        if (analysisError.message.includes("No income data found")) {
-          errorMessage = "You need to add income sources before analyzing.";
-        } else if (analysisError.message.includes("Income analysis failed")) {
-          errorMessage = "Income analysis failed. Please check your income data.";
+      handleApiError(
+        analysisError,
+        "Income Analysis Failed",
+        "Failed to analyze income data. Please try again.",
+        {
+          "No income data found": "You need to add income sources before analyzing.",
+          "Income analysis failed": "Income analysis failed. Please check your income data.",
+          "Unauthorized": "Your session has expired. Please log in again.",
+          "Network Error": "Network connection issue. Please check your internet connection."
         }
-      }
-      
-      toast({
-        title: "Income Analysis Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      );
     }
-  }, [isErrorAnalysis, analysisError, toast]);
+  }, [isErrorAnalysis, analysisError, handleApiError]);
   
   useEffect(() => {
     if (isErrorAnomalies && anomalyError) {
-      let errorMessage = "Failed to detect anomalies. Please try again.";
-      
-      if (anomalyError.message) {
-        if (anomalyError.message.includes("Insufficient valuation history")) {
-          errorMessage = "You need at least two valuations to detect anomalies.";
-        } else if (anomalyError.message.includes("Anomaly detection failed")) {
-          errorMessage = "Anomaly detection failed. Please check your valuation data.";
+      handleApiError(
+        anomalyError,
+        "Anomaly Detection Failed",
+        "Failed to detect anomalies. Please try again.",
+        {
+          "Insufficient valuation history": "You need at least two valuations to detect anomalies.",
+          "Anomaly detection failed": "Anomaly detection failed. Please check your valuation data.",
+          "Unauthorized": "Your session has expired. Please log in again.",
+          "Network Error": "Network connection issue. Please check your internet connection."
         }
-      }
-      
-      toast({
-        title: "Anomaly Detection Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      );
     }
-  }, [isErrorAnomalies, anomalyError, toast]);
+  }, [isErrorAnomalies, anomalyError, handleApiError]);
   
   useEffect(() => {
     if (isErrorDataQuality && dataQualityError) {
-      let errorMessage = "Failed to analyze data quality. Please try again.";
-      
-      if (dataQualityError.message) {
-        if (dataQualityError.message.includes("No income data found")) {
-          errorMessage = "You need to add income sources to analyze data quality.";
-        } else if (dataQualityError.message.includes("Data quality analysis failed")) {
-          errorMessage = "Data quality analysis failed. Please check your income data.";
+      handleApiError(
+        dataQualityError,
+        "Data Quality Analysis Failed",
+        "Failed to analyze data quality. Please try again.",
+        {
+          "No income data found": "You need to add income sources to analyze data quality.",
+          "Data quality analysis failed": "Data quality analysis failed. Please check your income data.",
+          "Unauthorized": "Your session has expired. Please log in again.",
+          "Network Error": "Network connection issue. Please check your internet connection."
         }
-      }
-      
-      toast({
-        title: "Data Quality Analysis Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      );
     }
-  }, [isErrorDataQuality, dataQualityError, toast]);
+  }, [isErrorDataQuality, dataQualityError, handleApiError]);
   
   useEffect(() => {
     if (isErrorSummary && summaryError) {
-      let errorMessage = "Failed to generate valuation summary. Please try again.";
-      
-      if (summaryError.message) {
-        if (summaryError.message.includes("No valuation data found")) {
-          errorMessage = "You need to create valuations first to get a summary.";
-        } else if (summaryError.message.includes("No income data found")) {
-          errorMessage = "You need to add income sources to generate a summary.";
-        } else if (summaryError.message.includes("Failed to generate summary")) {
-          errorMessage = "Summary generation failed. Please check your data.";
+      handleApiError(
+        summaryError,
+        "Valuation Summary Failed",
+        "Failed to generate valuation summary. Please try again.",
+        {
+          "No valuation data found": "You need to create valuations first to get a summary.",
+          "No income data found": "You need to add income sources to generate a summary.",
+          "Failed to generate summary": "Summary generation failed. Please check your data.",
+          "Unauthorized": "Your session has expired. Please log in again.",
+          "Network Error": "Network connection issue. Please check your internet connection."
         }
-      }
-      
-      toast({
-        title: "Valuation Summary Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      );
     }
-  }, [isErrorSummary, summaryError, toast]);
+  }, [isErrorSummary, summaryError, handleApiError]);
 
   return (
     <div className="container mx-auto py-8">
