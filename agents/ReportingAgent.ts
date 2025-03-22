@@ -379,6 +379,19 @@ export class ReportingAgent {
       annualGrowthRate: number;
     }
   ): ReportRecommendation[] {
+    // Input validation
+    if (!Array.isArray(incomes)) {
+      throw new Error('Income data must be an array');
+    }
+    
+    if (!Array.isArray(valuations)) {
+      throw new Error('Valuation history must be an array');
+    }
+    
+    if (!metrics || typeof metrics !== 'object') {
+      throw new Error('Metrics must be a valid object');
+    }
+    
     const recommendations: ReportRecommendation[] = [];
     
     // Recommendation on income diversification
@@ -549,6 +562,15 @@ export class ReportingAgent {
     }, 
     insights: ValuationInsight[]
   ): string {
+    // Input validation
+    if (!metrics || typeof metrics !== 'object') {
+      throw new Error('Metrics must be a valid object');
+    }
+    
+    if (!Array.isArray(insights)) {
+      throw new Error('Insights must be an array');
+    }
+    
     // Generate a concise summary from metrics and key insights
     let summary = `Current valuation: $${metrics.latestValuationAmount.toLocaleString()}`;
     
