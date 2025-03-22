@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -98,24 +98,17 @@ export default function AgentDashboard() {
       setReportData(data);
     },
     onError: (error) => {
-      let errorMessage = "Failed to generate report. Please try again.";
-      
-      // Extract more specific error messages if available
-      if (error.message) {
-        if (error.message.includes("No valuation data found")) {
-          errorMessage = "You need to create valuations first before generating a report.";
-        } else if (error.message.includes("Invalid period")) {
-          errorMessage = "Invalid report period selected. Please choose monthly, quarterly, or yearly.";
-        } else {
-          errorMessage = `Error: ${error.message}`;
+      handleApiError(
+        error,
+        "Report Generation Failed",
+        "Failed to generate report. Please try again.",
+        {
+          "No valuation data found": "You need to create valuations first before generating a report.",
+          "Invalid period": "Invalid report period selected. Please choose monthly, quarterly, or yearly.",
+          "Unauthorized": "Your session has expired. Please log in again.",
+          "Network Error": "Network connection issue. Please check your internet connection."
         }
-      }
-      
-      toast({
-        title: "Report Generation Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      );
     }
   });
 
@@ -142,8 +135,8 @@ export default function AgentDashboard() {
     });
   };
   
-  // Consolidated error handling utility function
-  const handleApiError = (
+  // Consolidated error handling utility function with useCallback
+  const handleApiError = useCallback((
     error: Error | null, 
     title: string, 
     defaultMessage: string,
@@ -173,7 +166,7 @@ export default function AgentDashboard() {
       description: errorMessage,
       variant: "destructive",
     });
-  };
+  }, [toast]);
   
   // Error handling effects
   useEffect(() => {
