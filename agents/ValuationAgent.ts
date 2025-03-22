@@ -83,7 +83,14 @@ export class ValuationAgent {
     );
 
     // Calculate percentage changes and detect anomalies
-    const changes = [];
+    interface ValuationChange {
+      from: Date;
+      to: Date;
+      percentChange: number;
+      isAnomaly: boolean;
+    }
+    
+    const changes: ValuationChange[] = [];
     for (let i = 1; i < sortedValuations.length; i++) {
       const prevValue = parseFloat(sortedValuations[i - 1].valuationAmount);
       const currValue = parseFloat(sortedValuations[i].valuationAmount);
@@ -92,8 +99,8 @@ export class ValuationAgent {
       
       if (isAnomaly) {
         changes.push({
-          from: sortedValuations[i - 1].createdAt,
-          to: sortedValuations[i].createdAt,
+          from: new Date(sortedValuations[i - 1].createdAt),
+          to: new Date(sortedValuations[i].createdAt),
           percentChange,
           isAnomaly
         });
@@ -101,16 +108,26 @@ export class ValuationAgent {
     }
 
     // Format anomalies according to the interface
+    type Severity = 'high' | 'medium' | 'low';
+    
     const formattedAnomalies = changes.map(change => {
-      const dateFrom = new Date(change.from).toLocaleDateString();
-      const dateTo = new Date(change.to).toLocaleDateString();
+      const dateFrom = change.from.toLocaleDateString();
+      const dateTo = change.to.toLocaleDateString();
       const isIncrease = change.percentChange > 0;
       const absChange = Math.abs(change.percentChange).toFixed(1);
       
+      let severity: Severity;
+      if (Math.abs(change.percentChange) > 50) {
+        severity = 'high';
+      } else if (Math.abs(change.percentChange) > 30) {
+        severity = 'medium';
+      } else {
+        severity = 'low';
+      }
+      
       return {
         type: `Sudden ${isIncrease ? 'Increase' : 'Decrease'}`,
-        severity: Math.abs(change.percentChange) > 50 ? 'high' as const : 
-                 Math.abs(change.percentChange) > 30 ? 'medium' as const : 'low' as const,
+        severity,
         description: `${isIncrease ? 'Increase' : 'Decrease'} of ${absChange}% between ${dateFrom} and ${dateTo}`,
         recommendation: `Review changes in income sources during this period to understand the ${isIncrease ? 'growth' : 'decline'}`
       };
@@ -127,8 +144,10 @@ export class ValuationAgent {
 
   /**
    * Helper method to find the most common income type
+   * @param incomeBySource Record mapping income sources to arrays of income records
+   * @returns The most common income source type
    */
-  private getMostCommonIncomeType(incomeBySource: Record<string, Income[]>) {
+  private getMostCommonIncomeType(incomeBySource: Record<string, Income[]>): string {
     let maxCount = 0;
     let mostCommonType = '';
     

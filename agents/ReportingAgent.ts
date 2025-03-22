@@ -413,18 +413,28 @@ export class ReportingAgent {
     return recommendations;
   }
   
+  /**
+   * Prepares chart data from income and valuation records
+   * @param incomes Array of income records
+   * @param valuations Array of valuation records
+   * @param period The reporting period granularity
+   * @returns Formatted data for valuation history and income breakdown charts
+   */
   private prepareChartData(
     incomes: Income[], 
     valuations: Valuation[], 
     period: ReportingPeriod
-  ): { valuationHistory: Array<{ date: Date; amount: string }>, incomeBreakdown: Array<{ source: string; amount: number }> } {
+  ): { 
+    valuationHistory: Array<{ date: Date; amount: string }>, 
+    incomeBreakdown: Array<{ source: string; amount: number }> 
+  } {
     // Prepare data for charts based on the period
     
     // Valuation over time chart
     const valuationHistory = valuations.map(v => ({
-      date: v.createdAt,
+      date: new Date(v.createdAt),
       amount: v.valuationAmount
-    })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    })).sort((a, b) => a.date.getTime() - b.date.getTime());
     
     // Income by source breakdown
     const incomeBySource = incomes.reduce((acc, income) => {
@@ -456,6 +466,12 @@ export class ReportingAgent {
     };
   }
   
+  /**
+   * Generates a human-readable summary from metrics and key insights
+   * @param metrics The calculated valuation metrics
+   * @param insights Array of valuation insights
+   * @returns A concise summary string
+   */
   private generateSummary(
     metrics: {
       totalMonthlyIncome: number;
