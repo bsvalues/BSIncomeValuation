@@ -39,6 +39,18 @@ export class ReportingAgent {
     valuationHistory: Valuation[],
     options: Partial<ReportOptions> = {}
   ): Promise<ValuationReport> {
+    // Basic input validation
+    if (!Array.isArray(incomeData)) {
+      throw new Error('Income data must be an array');
+    }
+    
+    if (!Array.isArray(valuationHistory)) {
+      throw new Error('Valuation history must be an array');
+    }
+    
+    if (valuationHistory.length === 0) {
+      throw new Error('Cannot generate report: No valuation data available');
+    }
     // Apply default options
     const reportOptions: ReportOptions = {
       period: options.period || 'monthly',
@@ -98,6 +110,15 @@ export class ReportingAgent {
     // 1. Call an LLM API with the income and valuation data
     // 2. Use specific prompts to generate natural language summary
     // 3. Return formatted text with key insights
+    
+    // Basic input validation
+    if (!Array.isArray(incomeData)) {
+      throw new Error('Income data must be an array');
+    }
+    
+    if (!Array.isArray(valuationHistory)) {
+      throw new Error('Valuation history must be an array');
+    }
     
     if (valuationHistory.length === 0) {
       return { summary: "No valuation data available yet. Create your first valuation to get started with insights." };
