@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -141,6 +141,89 @@ export default function AgentDashboard() {
       description: "Retrieving the latest AI insights for your data.",
     });
   };
+  
+  // Error handling effects
+  useEffect(() => {
+    if (isErrorAnalysis && analysisError) {
+      let errorMessage = "Failed to analyze income data. Please try again.";
+      
+      if (analysisError.message) {
+        if (analysisError.message.includes("No income data found")) {
+          errorMessage = "You need to add income sources before analyzing.";
+        } else if (analysisError.message.includes("Income analysis failed")) {
+          errorMessage = "Income analysis failed. Please check your income data.";
+        }
+      }
+      
+      toast({
+        title: "Income Analysis Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  }, [isErrorAnalysis, analysisError, toast]);
+  
+  useEffect(() => {
+    if (isErrorAnomalies && anomalyError) {
+      let errorMessage = "Failed to detect anomalies. Please try again.";
+      
+      if (anomalyError.message) {
+        if (anomalyError.message.includes("Insufficient valuation history")) {
+          errorMessage = "You need at least two valuations to detect anomalies.";
+        } else if (anomalyError.message.includes("Anomaly detection failed")) {
+          errorMessage = "Anomaly detection failed. Please check your valuation data.";
+        }
+      }
+      
+      toast({
+        title: "Anomaly Detection Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  }, [isErrorAnomalies, anomalyError, toast]);
+  
+  useEffect(() => {
+    if (isErrorDataQuality && dataQualityError) {
+      let errorMessage = "Failed to analyze data quality. Please try again.";
+      
+      if (dataQualityError.message) {
+        if (dataQualityError.message.includes("No income data found")) {
+          errorMessage = "You need to add income sources to analyze data quality.";
+        } else if (dataQualityError.message.includes("Data quality analysis failed")) {
+          errorMessage = "Data quality analysis failed. Please check your income data.";
+        }
+      }
+      
+      toast({
+        title: "Data Quality Analysis Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  }, [isErrorDataQuality, dataQualityError, toast]);
+  
+  useEffect(() => {
+    if (isErrorSummary && summaryError) {
+      let errorMessage = "Failed to generate valuation summary. Please try again.";
+      
+      if (summaryError.message) {
+        if (summaryError.message.includes("No valuation data found")) {
+          errorMessage = "You need to create valuations first to get a summary.";
+        } else if (summaryError.message.includes("No income data found")) {
+          errorMessage = "You need to add income sources to generate a summary.";
+        } else if (summaryError.message.includes("Failed to generate summary")) {
+          errorMessage = "Summary generation failed. Please check your data.";
+        }
+      }
+      
+      toast({
+        title: "Valuation Summary Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  }, [isErrorSummary, summaryError, toast]);
 
   return (
     <div className="container mx-auto py-8">
@@ -231,7 +314,7 @@ export default function AgentDashboard() {
                 <Alert variant="destructive">
                   <AlertTitle>Error</AlertTitle>
                   <AlertDescription>
-                    Unable to analyze income. You may need to add income sources first.
+                    {analysisError?.message || "Unable to analyze income. You may need to add income sources first."}
                   </AlertDescription>
                 </Alert>
               ) : incomeAnalysis ? (
@@ -314,7 +397,7 @@ export default function AgentDashboard() {
                 <Alert variant="destructive">
                   <AlertTitle>Error</AlertTitle>
                   <AlertDescription>
-                    Unable to detect anomalies. You need at least two valuations for anomaly detection.
+                    {anomalyError?.message || "Unable to detect anomalies. You need at least two valuations for anomaly detection."}
                   </AlertDescription>
                 </Alert>
               ) : anomalyData ? (
@@ -400,7 +483,7 @@ export default function AgentDashboard() {
                 <Alert variant="destructive">
                   <AlertTitle>Error</AlertTitle>
                   <AlertDescription>
-                    Unable to analyze data quality. You may need to add income data first.
+                    {dataQualityError?.message || "Unable to analyze data quality. You may need to add income data first."}
                   </AlertDescription>
                 </Alert>
               ) : dataQualityAnalysis ? (
