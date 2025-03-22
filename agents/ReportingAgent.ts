@@ -100,7 +100,7 @@ export class ReportingAgent {
     // 3. Return formatted text with key insights
     
     if (valuationHistory.length === 0) {
-      return "No valuation data available yet. Create your first valuation to get started with insights.";
+      return { summary: "No valuation data available yet. Create your first valuation to get started with insights." };
     }
     
     // Sort valuations by date
@@ -155,7 +155,7 @@ export class ReportingAgent {
       summary += ` Your highest value income source is ${highestSourceName}.`;
     }
     
-    return summary;
+    return { summary };
   }
   
   /**
