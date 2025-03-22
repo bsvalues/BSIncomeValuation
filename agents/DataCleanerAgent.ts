@@ -35,6 +35,20 @@ export class DataCleanerAgent {
     // 2. Use specific prompts to identify data quality issues
     // 3. Return structured results with suggestions
 
+    // Basic input validation
+    if (!Array.isArray(incomeData)) {
+      throw new Error('Income data must be an array');
+    }
+    
+    if (incomeData.length === 0) {
+      return {
+        qualityScore: 100,
+        totalRecords: 0,
+        issues: [],
+        potentialDuplicates: []
+      };
+    }
+    
     // Using interfaces defined at module level
     const issues: DataIssue[] = [];
     const suggestedFixes: SuggestedFix[] = [];
@@ -143,6 +157,10 @@ export class DataCleanerAgent {
    * @returns Array of groups of potential duplicates
    */
   private findPotentialDuplicates(incomeData: Income[]): Income[][] {
+    if (!Array.isArray(incomeData) || incomeData.length === 0) {
+      return [];
+    }
+    
     const duplicateGroups: Income[][] = [];
     const checked = new Set<number>();
     
@@ -186,6 +204,11 @@ export class DataCleanerAgent {
    * @returns Quality score from 0-100
    */
   private calculateDataQualityScore(issues: DataIssue[], totalRecords: number): number {
+    // Input validation with safe defaults
+    if (!Array.isArray(issues)) {
+      return 100; // Default to perfect score if no issues data
+    }
+    
     if (totalRecords === 0) return 100;
     
     // Calculate how many records have issues

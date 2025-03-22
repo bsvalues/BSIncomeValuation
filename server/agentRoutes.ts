@@ -124,7 +124,17 @@ agentRouter.post(
     }
 
     const userId = req.user.userId;
-    const { period, includeCharts, includeInsights, includeRecommendations } = req.body;
+    
+    // Validate report options with defaults
+    const period = req.body.period || 'monthly';
+    if (!['monthly', 'quarterly', 'yearly'].includes(period)) {
+      throw new Error(`Invalid period: ${period}. Must be one of 'monthly', 'quarterly', or 'yearly'`);
+    }
+    
+    // Convert to boolean to ensure proper types
+    const includeCharts = req.body.includeCharts !== undefined ? Boolean(req.body.includeCharts) : true;
+    const includeInsights = req.body.includeInsights !== undefined ? Boolean(req.body.includeInsights) : true;
+    const includeRecommendations = req.body.includeRecommendations !== undefined ? Boolean(req.body.includeRecommendations) : true;
     
     const incomes = await storage.getIncomesByUserId(userId);
     const valuations = await storage.getValuationsByUserId(userId);

@@ -17,6 +17,15 @@ export class ValuationAgent {
     // 2. Process the income data with specific prompts
     // 3. Return structured insights and recommendations
 
+    // Basic input validation
+    if (!Array.isArray(incomeData)) {
+      throw new Error('Income data must be an array');
+    }
+    
+    if (incomeData.length === 0) {
+      throw new Error('Cannot analyze income: No income data provided');
+    }
+    
     const totalMonthlyIncome = incomeData.reduce((total, income) => {
       // Convert all income to monthly
       let monthlyAmount = parseFloat(income.amount);
@@ -77,6 +86,18 @@ export class ValuationAgent {
     // Placeholder for anomaly detection logic
     // Real implementation would use AI to identify patterns and outliers
 
+    // Basic input validation
+    if (!Array.isArray(valuationHistory)) {
+      throw new Error('Valuation history must be an array');
+    }
+    
+    if (valuationHistory.length < 2) {
+      return {
+        anomalies: [],
+        insights: ['Not enough valuation data to detect anomalies. At least two valuations are required.']
+      };
+    }
+    
     // Sort valuations by date
     const sortedValuations = [...valuationHistory].sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()

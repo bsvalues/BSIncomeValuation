@@ -94,9 +94,22 @@ export default function AgentDashboard() {
       setReportData(data);
     },
     onError: (error) => {
+      let errorMessage = "Failed to generate report. Please try again.";
+      
+      // Extract more specific error messages if available
+      if (error.message) {
+        if (error.message.includes("No valuation data found")) {
+          errorMessage = "You need to create valuations first before generating a report.";
+        } else if (error.message.includes("Invalid period")) {
+          errorMessage = "Invalid report period selected. Please choose monthly, quarterly, or yearly.";
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to generate report. Please try again.",
+        title: "Report Generation Failed",
+        description: errorMessage,
         variant: "destructive",
       });
     }
