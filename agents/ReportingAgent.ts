@@ -184,6 +184,15 @@ export class ReportingAgent {
    */
   
   private getDataByPeriod(valuations: Valuation[], period: ReportingPeriod): Record<string, Valuation[]> {
+    // Input validation
+    if (!Array.isArray(valuations)) {
+      throw new Error('Valuations must be an array');
+    }
+    
+    if (!period || !['monthly', 'quarterly', 'yearly'].includes(period)) {
+      throw new Error('Invalid period specified. Must be monthly, quarterly, or yearly.');
+    }
+    
     // Group valuations by the specified period
     const periodData: Record<string, Valuation[]> = {};
     
@@ -223,6 +232,15 @@ export class ReportingAgent {
     incomeStreamCount: number;
     annualGrowthRate: number;
   } {
+    // Input validation
+    if (!Array.isArray(incomes)) {
+      throw new Error('Income data must be an array');
+    }
+    
+    if (!Array.isArray(valuations)) {
+      throw new Error('Valuation history must be an array');
+    }
+    
     // Current values
     const latestValuation = valuations.length > 0 
       ? valuations[valuations.length - 1] 
@@ -287,6 +305,19 @@ export class ReportingAgent {
       annualGrowthRate: number;
     }
   ): ValuationInsight[] {
+    // Input validation
+    if (!Array.isArray(incomes)) {
+      throw new Error('Income data must be an array');
+    }
+    
+    if (!Array.isArray(valuations)) {
+      throw new Error('Valuation history must be an array');
+    }
+    
+    if (!metrics || typeof metrics !== 'object') {
+      throw new Error('Metrics must be a valid object');
+    }
+    
     const insights: ValuationInsight[] = [];
     
     // Insight on valuation trend
@@ -449,6 +480,19 @@ export class ReportingAgent {
     valuationHistory: Array<{ date: Date; amount: string }>, 
     incomeBreakdown: Array<{ source: string; amount: number }> 
   } {
+    // Input validation
+    if (!Array.isArray(incomes)) {
+      throw new Error('Income data must be an array');
+    }
+    
+    if (!Array.isArray(valuations)) {
+      throw new Error('Valuation history must be an array');
+    }
+    
+    if (!period || !['monthly', 'quarterly', 'yearly'].includes(period)) {
+      throw new Error('Invalid period specified. Must be monthly, quarterly, or yearly.');
+    }
+    
     // Prepare data for charts based on the period
     
     // Valuation over time chart
