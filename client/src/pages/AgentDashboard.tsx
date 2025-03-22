@@ -3,6 +3,13 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { 
+  IncomeAnalysis, 
+  AnomalyDetection, 
+  DataQualityAnalysis, 
+  ValuationSummary,
+  ValuationReport 
+} from "@/types/agent-types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +29,7 @@ export default function AgentDashboard() {
     isLoading: isLoadingAnalysis,
     isError: isErrorAnalysis,
     refetch: refetchAnalysis
-  } = useQuery({
+  } = useQuery<IncomeAnalysis>({
     queryKey: ['/api/agents/analyze-income'],
     enabled: isAuthenticated,
     refetchOnWindowFocus: false,
@@ -34,7 +41,7 @@ export default function AgentDashboard() {
     isLoading: isLoadingAnomalies,
     isError: isErrorAnomalies,
     refetch: refetchAnomalies
-  } = useQuery({
+  } = useQuery<AnomalyDetection>({
     queryKey: ['/api/agents/detect-anomalies'],
     enabled: isAuthenticated,
     refetchOnWindowFocus: false,
@@ -46,7 +53,7 @@ export default function AgentDashboard() {
     isLoading: isLoadingDataQuality,
     isError: isErrorDataQuality,
     refetch: refetchDataQuality
-  } = useQuery({
+  } = useQuery<DataQualityAnalysis>({
     queryKey: ['/api/agents/analyze-data-quality'],
     enabled: isAuthenticated,
     refetchOnWindowFocus: false,
@@ -58,7 +65,7 @@ export default function AgentDashboard() {
     isLoading: isLoadingSummary,
     isError: isErrorSummary,
     refetch: refetchSummary
-  } = useQuery({
+  } = useQuery<ValuationSummary>({
     queryKey: ['/api/agents/valuation-summary'],
     enabled: isAuthenticated,
     refetchOnWindowFocus: false,
@@ -68,8 +75,12 @@ export default function AgentDashboard() {
   const { 
     mutate: generateReport, 
     isPending: isGeneratingReport 
-  } = useMutation({
-    mutationFn: async (reportOptions: any) => {
+  } = useMutation<
+    ValuationReport, 
+    Error, 
+    typeof reportOptions
+  >({
+    mutationFn: async (reportOptions) => {
       return await apiRequest('/api/agents/generate-report', {
         method: 'POST',
         body: JSON.stringify(reportOptions),
@@ -91,9 +102,9 @@ export default function AgentDashboard() {
     }
   });
 
-  const [reportData, setReportData] = useState<any>(null);
+  const [reportData, setReportData] = useState<ValuationReport | null>(null);
   const [reportOptions, setReportOptions] = useState({
-    period: 'monthly',
+    period: 'monthly' as 'monthly' | 'quarterly' | 'yearly',
     includeCharts: true,
     includeInsights: true,
     includeRecommendations: true,
@@ -484,7 +495,10 @@ export default function AgentDashboard() {
                     <select 
                       className="w-full rounded-md border border-input bg-background px-3 py-2"
                       value={reportOptions.period}
-                      onChange={(e) => setReportOptions({...reportOptions, period: e.target.value})}
+                      onChange={(e) => setReportOptions({
+                        ...reportOptions, 
+                        period: e.target.value as 'monthly' | 'quarterly' | 'yearly'
+                      })}
                     >
                       <option value="monthly">Monthly</option>
                       <option value="quarterly">Quarterly</option>
