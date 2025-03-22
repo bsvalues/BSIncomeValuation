@@ -28,11 +28,12 @@ export default function AgentDashboard() {
     data: incomeAnalysis, 
     isLoading: isLoadingAnalysis,
     isError: isErrorAnalysis,
+    error: analysisError,
     refetch: refetchAnalysis
-  } = useQuery<IncomeAnalysis>({
+  } = useQuery<IncomeAnalysis, Error, IncomeAnalysis, string[]>({
     queryKey: ['/api/agents/analyze-income'],
     enabled: isAuthenticated,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: false
   });
 
   // Anomaly detection query
@@ -40,11 +41,12 @@ export default function AgentDashboard() {
     data: anomalyData, 
     isLoading: isLoadingAnomalies,
     isError: isErrorAnomalies,
+    error: anomalyError,
     refetch: refetchAnomalies
-  } = useQuery<AnomalyDetection>({
+  } = useQuery<AnomalyDetection, Error, AnomalyDetection, string[]>({
     queryKey: ['/api/agents/detect-anomalies'],
     enabled: isAuthenticated,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: false
   });
 
   // Data quality query
@@ -52,11 +54,12 @@ export default function AgentDashboard() {
     data: dataQualityAnalysis, 
     isLoading: isLoadingDataQuality,
     isError: isErrorDataQuality,
+    error: dataQualityError,
     refetch: refetchDataQuality
-  } = useQuery<DataQualityAnalysis>({
+  } = useQuery<DataQualityAnalysis, Error, DataQualityAnalysis, string[]>({
     queryKey: ['/api/agents/analyze-data-quality'],
     enabled: isAuthenticated,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: false
   });
 
   // Valuation summary query
@@ -64,11 +67,12 @@ export default function AgentDashboard() {
     data: valuationSummary, 
     isLoading: isLoadingSummary,
     isError: isErrorSummary,
+    error: summaryError,
     refetch: refetchSummary
-  } = useQuery<ValuationSummary>({
+  } = useQuery<ValuationSummary, Error, ValuationSummary, string[]>({
     queryKey: ['/api/agents/valuation-summary'],
     enabled: isAuthenticated,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: false
   });
 
   // Report generation mutation
@@ -182,7 +186,7 @@ export default function AgentDashboard() {
                 <Alert variant="destructive">
                   <AlertTitle>Error</AlertTitle>
                   <AlertDescription>
-                    Unable to load valuation summary. You may need to create valuations first.
+                    {summaryError?.message || "Unable to load valuation summary. You may need to create valuations first."}
                   </AlertDescription>
                 </Alert>
               ) : valuationSummary ? (
