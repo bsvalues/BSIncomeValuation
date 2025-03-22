@@ -4,6 +4,24 @@ import { storage } from './storage';
 import { authenticateJWT } from './auth';
 import { asyncHandler, AuthorizationError, NotFoundError } from './errorHandler';
 
+// Define interface for authenticated request with user payload
+interface AuthenticatedRequest extends Request {
+  user?: {
+    userId: number;
+    username: string;
+    email: string;
+    role: string;
+  };
+}
+
+// Define interface for report generation options
+interface ReportOptions {
+  period: 'monthly' | 'quarterly' | 'yearly';
+  includeCharts: boolean;
+  includeInsights: boolean;
+  includeRecommendations: boolean;
+}
+
 export const agentRouter = Router();
 
 // Initialize agents
@@ -15,7 +33,7 @@ const reportingAgent = new ReportingAgent();
 agentRouter.get(
   '/analyze-income',
   authenticateJWT,
-  asyncHandler(async (req: Request & { user?: any }, res: Response) => {
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
       throw new AuthorizationError('Authentication required');
     }
@@ -36,7 +54,7 @@ agentRouter.get(
 agentRouter.get(
   '/detect-anomalies',
   authenticateJWT,
-  asyncHandler(async (req: Request & { user?: any }, res: Response) => {
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
       throw new AuthorizationError('Authentication required');
     }
@@ -57,7 +75,7 @@ agentRouter.get(
 agentRouter.get(
   '/analyze-data-quality',
   authenticateJWT,
-  asyncHandler(async (req: Request & { user?: any }, res: Response) => {
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
       throw new AuthorizationError('Authentication required');
     }
@@ -78,7 +96,7 @@ agentRouter.get(
 agentRouter.get(
   '/valuation-summary',
   authenticateJWT,
-  asyncHandler(async (req: Request & { user?: any }, res: Response) => {
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
       throw new AuthorizationError('Authentication required');
     }
@@ -100,7 +118,7 @@ agentRouter.get(
 agentRouter.post(
   '/generate-report',
   authenticateJWT,
-  asyncHandler(async (req: Request & { user?: any }, res: Response) => {
+  asyncHandler(async (req: AuthenticatedRequest & { body: ReportOptions }, res: Response) => {
     if (!req.user) {
       throw new AuthorizationError('Authentication required');
     }
@@ -115,12 +133,14 @@ agentRouter.post(
       throw new NotFoundError('No valuation data found. Create your first valuation to generate a report.');
     }
 
-    const report = await reportingAgent.generateReport(incomes, valuations, {
+    const reportOptions: ReportOptions = {
       period,
       includeCharts,
       includeInsights,
       includeRecommendations
-    });
+    };
+
+    const report = await reportingAgent.generateReport(incomes, valuations, reportOptions);
     
     return res.json(report);
   })
