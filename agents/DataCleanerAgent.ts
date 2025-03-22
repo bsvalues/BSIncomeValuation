@@ -1,4 +1,5 @@
 import { Income } from '../shared/schema';
+import { DataQualityAnalysis } from '../client/src/types/agent-types';
 
 /**
  * DataCleanerAgent - AI-powered agent for detecting and fixing anomalies in income data
