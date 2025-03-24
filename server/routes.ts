@@ -92,42 +92,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const incomeData = insertIncomeSchema.parse(req.body);
       const income = await storage.createIncome(incomeData);
-      res.status(201).json(income);
+      res.status(201).json({
+        success: true,
+        data: income,
+        message: "Income source added successfully" 
+      });
     } catch (error) {
       if (error instanceof ZodError) {
         const validationError = fromZodError(error);
-        throw new ValidationError(validationError.message);
+        throw new ValidationError("Invalid income data", validationError.details);
       }
       throw error;
     }
   }));
 
-  router.put("/incomes/:id", async (req: Request, res: Response) => {
-    try {
-      const incomeId = parseInt(req.params.id);
-      const incomeData = req.body;
-      const income = await storage.updateIncome(incomeId, incomeData);
-      if (!income) {
-        return res.status(404).json({ error: "Income not found" });
-      }
-      res.json(income);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update income" });
+  router.put("/incomes/:id", asyncHandler(async (req: Request, res: Response) => {
+    const incomeId = parseInt(req.params.id);
+    
+    // Validate ID parameter
+    if (isNaN(incomeId) || incomeId <= 0) {
+      throw new ValidationError("Invalid income ID", { id: "Must be a positive integer" });
     }
-  });
+    
+    // Validate update data
+    const incomeData = insertIncomeSchema.partial().parse(req.body);
+    const income = await storage.updateIncome(incomeId, incomeData);
+    
+    if (!income) {
+      throw new NotFoundError("Income not found");
+    }
+    
+    res.json({
+      success: true,
+      data: income,
+      message: "Income updated successfully"
+    });
+  }));
 
-  router.delete("/incomes/:id", async (req: Request, res: Response) => {
-    try {
-      const incomeId = parseInt(req.params.id);
-      const success = await storage.deleteIncome(incomeId);
-      if (!success) {
-        return res.status(404).json({ error: "Income not found" });
-      }
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete income" });
+  router.delete("/incomes/:id", asyncHandler(async (req: Request, res: Response) => {
+    const incomeId = parseInt(req.params.id);
+    
+    // Validate ID parameter
+    if (isNaN(incomeId) || incomeId <= 0) {
+      throw new ValidationError("Invalid income ID", { id: "Must be a positive integer" });
     }
-  });
+    
+    const success = await storage.deleteIncome(incomeId);
+    
+    if (!success) {
+      throw new NotFoundError("Income not found");
+    }
+    
+    res.json({
+      success: true,
+      message: "Income deleted successfully"
+    });
+  }));
 
   // Valuation routes
   router.get("/users/:userId/valuations", async (req: Request, res: Response) => {
@@ -157,11 +177,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const valuationData = insertValuationSchema.parse(req.body);
       const valuation = await storage.createValuation(valuationData);
-      res.status(201).json(valuation);
+      res.status(201).json({
+        success: true,
+        data: valuation,
+        message: "Valuation created successfully"
+      });
     } catch (error) {
       if (error instanceof ZodError) {
         const validationError = fromZodError(error);
-        throw new ValidationError(validationError.message);
+        throw new ValidationError("Invalid valuation data", validationError.details);
       }
       throw error;
     }

@@ -157,9 +157,21 @@ export const insertIncomeSchema = createInsertSchema(incomes)
   .extend({
     createdAt: z.date().optional(),
     updatedAt: z.date().optional(),
-    amount: z.union([z.string(), z.number()]).transform(val => 
-      typeof val === 'string' ? val : val.toString()
-    ),
+    userId: z.number().int().positive("User ID must be a positive integer"),
+    source: z.enum(["salary", "business", "freelance", "investment", "rental", "other"], {
+      errorMap: () => ({ message: "Invalid income source type" })
+    }),
+    amount: z.union([z.string(), z.number()])
+      .refine(val => {
+        const numVal = Number(val);
+        return !isNaN(numVal) && numVal > 0;
+      }, "Amount must be a positive number")
+      .transform(val => typeof val === 'string' ? val : val.toString()),
+    frequency: z.enum(["daily", "weekly", "monthly", "quarterly", "yearly"], {
+      errorMap: () => ({ message: "Frequency must be daily, weekly, monthly, quarterly, or yearly" })
+    }),
+    description: z.string().max(500, "Description cannot exceed 500 characters").optional()
+      .transform(val => val === "" ? null : val?.trim()),
   });
 
 export const insertValuationSchema = createInsertSchema(valuations)
@@ -175,15 +187,31 @@ export const insertValuationSchema = createInsertSchema(valuations)
   .extend({
     createdAt: z.date().optional(),
     updatedAt: z.date().optional(),
-    totalAnnualIncome: z.union([z.string(), z.number()]).transform(val => 
-      typeof val === 'string' ? val : val.toString()
-    ),
-    multiplier: z.union([z.string(), z.number()]).transform(val => 
-      typeof val === 'string' ? val : val.toString()
-    ),
-    valuationAmount: z.union([z.string(), z.number()]).transform(val => 
-      typeof val === 'string' ? val : val.toString()
-    ),
+    userId: z.number().int().positive("User ID must be a positive integer"),
+    name: z.string().min(1, "Name is required").max(100, "Name cannot exceed 100 characters")
+      .trim(),
+    totalAnnualIncome: z.union([z.string(), z.number()])
+      .refine(val => {
+        const numVal = Number(val);
+        return !isNaN(numVal) && numVal >= 0;
+      }, "Total annual income must be a positive number")
+      .transform(val => typeof val === 'string' ? val : val.toString()),
+    multiplier: z.union([z.string(), z.number()])
+      .refine(val => {
+        const numVal = Number(val);
+        return !isNaN(numVal) && numVal > 0;
+      }, "Multiplier must be a positive number")
+      .transform(val => typeof val === 'string' ? val : val.toString()),
+    valuationAmount: z.union([z.string(), z.number()])
+      .refine(val => {
+        const numVal = Number(val);
+        return !isNaN(numVal) && numVal >= 0;
+      }, "Valuation amount must be a positive number")
+      .transform(val => typeof val === 'string' ? val : val.toString()),
+    incomeBreakdown: z.string().optional()
+      .transform(val => val === "" ? null : val),
+    notes: z.string().max(1000, "Notes cannot exceed 1000 characters").optional()
+      .transform(val => val === "" ? null : val?.trim()),
   });
 
 export const insertIncomeMultiplierSchema = createInsertSchema(incomeMultipliers)
@@ -194,9 +222,21 @@ export const insertIncomeMultiplierSchema = createInsertSchema(incomeMultipliers
     isActive: true,
   })
   .extend({
-    multiplier: z.union([z.string(), z.number()]).transform(val => 
-      typeof val === 'string' ? val : val.toString()
-    ),
+    source: z.string()
+      .min(1, "Source is required")
+      .max(50, "Source cannot exceed 50 characters")
+      .trim(),
+    multiplier: z.union([z.string(), z.number()])
+      .refine(val => {
+        const numVal = Number(val);
+        return !isNaN(numVal) && numVal > 0 && numVal <= 100;
+      }, "Multiplier must be a positive number between 0 and 100")
+      .transform(val => typeof val === 'string' ? val : val.toString()),
+    description: z.string()
+      .max(500, "Description cannot exceed 500 characters")
+      .optional()
+      .transform(val => val === "" ? null : val?.trim()),
+    isActive: z.boolean().default(true),
   });
 
 // Dev auth token schema
