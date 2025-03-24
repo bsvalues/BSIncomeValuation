@@ -16,6 +16,12 @@ import {
   updateLastLogin,
   authenticateJWT,
 } from "./auth";
+import { 
+  ValidationError, 
+  AuthorizationError, 
+  NotFoundError, 
+  ConflictError 
+} from './errorHandler';
 
 // Create auth router
 export const authRouter = Router();
@@ -29,12 +35,30 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     // Check if username or email already exists
     const existingUsername = await getUserByUsername(userData.username);
     if (existingUsername) {
-      return res.status(400).json({ error: "Username already taken" });
+      return res.status(409).json({
+        success: false,
+        error: {
+          type: 'ConflictError',
+          message: "Username already taken",
+          status: 409,
+          code: 'USERNAME_ALREADY_EXISTS',
+          entity: 'user'
+        }
+      });
     }
 
     const existingEmail = await getUserByEmail(userData.email);
     if (existingEmail) {
-      return res.status(400).json({ error: "Email already registered" });
+      return res.status(409).json({
+        success: false,
+        error: {
+          type: 'ConflictError',
+          message: "Email already registered",
+          status: 409,
+          code: 'EMAIL_ALREADY_EXISTS',
+          entity: 'user'
+        }
+      });
     }
 
     // Hash the password
@@ -65,6 +89,7 @@ authRouter.post("/register", async (req: Request, res: Response) => {
 
     // Return user data and tokens
     res.status(201).json({
+      success: true,
       user: {
         id: user.id,
         username: user.username,
@@ -79,9 +104,30 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     console.error("Error registering user:", error);
     if (error instanceof ZodError) {
       const validationError = fromZodError(error);
-      res.status(400).json({ error: validationError.message });
+      res.status(400).json({
+        success: false,
+        error: {
+          type: 'ValidationError',
+          message: validationError.message,
+          status: 400,
+          code: 'VALIDATION_ERROR',
+          validationErrors: error.errors.map(err => ({
+            path: err.path.join('.'),
+            message: err.message,
+            code: 'INVALID_INPUT'
+          }))
+        }
+      });
     } else {
-      res.status(500).json({ error: "Failed to register user" });
+      res.status(500).json({
+        success: false,
+        error: {
+          type: 'ServerError',
+          message: "Failed to register user",
+          status: 500,
+          code: 'REGISTRATION_FAILED'
+        }
+      });
     }
   }
 });
@@ -95,7 +141,15 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     // Find user by username
     const user = await getUserByUsername(loginData.username);
     if (!user) {
-      return res.status(400).json({ error: "Invalid username or password" });
+      return res.status(401).json({
+        success: false,
+        error: {
+          type: 'AuthorizationError',
+          message: "Invalid username or password",
+          status: 401,
+          code: 'INVALID_CREDENTIALS'
+        }
+      });
     }
 
     // Verify password
@@ -104,7 +158,18 @@ authRouter.post("/login", async (req: Request, res: Response) => {
       user.password
     );
     if (!isPasswordValid) {
-      return res.status(400).json({ error: "Invalid username or password" });
+      // Add a small delay to prevent timing attacks that could reveal valid usernames
+      await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 200));
+      
+      return res.status(401).json({
+        success: false,
+        error: {
+          type: 'AuthorizationError',
+          message: "Invalid username or password",
+          status: 401,
+          code: 'INVALID_CREDENTIALS'
+        }
+      });
     }
 
     // Generate tokens
@@ -123,6 +188,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
 
     // Return user data and tokens
     res.json({
+      success: true,
       user: {
         id: user.id,
         username: user.username,
@@ -137,9 +203,30 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     console.error("Error logging in:", error);
     if (error instanceof ZodError) {
       const validationError = fromZodError(error);
-      res.status(400).json({ error: validationError.message });
+      res.status(400).json({
+        success: false,
+        error: {
+          type: 'ValidationError',
+          message: validationError.message,
+          status: 400,
+          code: 'VALIDATION_ERROR',
+          validationErrors: error.errors.map(err => ({
+            path: err.path.join('.'),
+            message: err.message,
+            code: 'INVALID_INPUT'
+          }))
+        }
+      });
     } else {
-      res.status(500).json({ error: "Failed to login" });
+      res.status(500).json({
+        success: false,
+        error: {
+          type: 'ServerError',
+          message: "Failed to login",
+          status: 500,
+          code: 'LOGIN_FAILED'
+        }
+      });
     }
   }
 });
@@ -150,13 +237,29 @@ authRouter.post("/refresh-token", async (req: Request, res: Response) => {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      return res.status(400).json({ error: "Refresh token is required" });
+      return res.status(400).json({
+        success: false,
+        error: {
+          type: 'ValidationError',
+          message: "Refresh token is required",
+          status: 400,
+          code: 'MISSING_REFRESH_TOKEN'
+        }
+      });
     }
 
     // Verify refresh token
     const payload = await verifyRefreshToken(refreshToken);
     if (!payload) {
-      return res.status(401).json({ error: "Invalid or expired refresh token" });
+      return res.status(401).json({
+        success: false,
+        error: {
+          type: 'AuthorizationError',
+          message: "Invalid or expired refresh token",
+          status: 401,
+          code: 'INVALID_REFRESH_TOKEN'
+        }
+      });
     }
 
     // Generate new tokens
@@ -175,12 +278,21 @@ authRouter.post("/refresh-token", async (req: Request, res: Response) => {
 
     // Return new tokens
     res.json({
+      success: true,
       accessToken: newTokens.accessToken,
       refreshToken: newTokens.refreshToken,
     });
   } catch (error) {
     console.error("Error refreshing token:", error);
-    res.status(500).json({ error: "Failed to refresh token" });
+    res.status(500).json({
+      success: false,
+      error: {
+        type: 'ServerError',
+        message: "Failed to refresh token",
+        status: 500,
+        code: 'TOKEN_REFRESH_FAILED'
+      }
+    });
   }
 });
 
@@ -190,16 +302,35 @@ authRouter.post("/logout", async (req: Request, res: Response) => {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      return res.status(400).json({ error: "Refresh token is required" });
+      return res.status(400).json({
+        success: false,
+        error: {
+          type: 'ValidationError',
+          message: "Refresh token is required",
+          status: 400,
+          code: 'MISSING_REFRESH_TOKEN'
+        }
+      });
     }
 
     // Revoke refresh token
     await revokeRefreshToken(refreshToken);
 
-    res.json({ message: "Logged out successfully" });
+    res.json({
+      success: true,
+      message: "Logged out successfully"
+    });
   } catch (error) {
     console.error("Error logging out:", error);
-    res.status(500).json({ error: "Failed to logout" });
+    res.status(500).json({
+      success: false,
+      error: {
+        type: 'ServerError',
+        message: "Failed to logout",
+        status: 500,
+        code: 'LOGOUT_FAILED'
+      }
+    });
   }
 });
 
@@ -227,13 +358,33 @@ authRouter.get(
         .where(eq(users.id, userId));
 
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({
+          success: false,
+          error: {
+            type: 'NotFoundError',
+            message: "User not found",
+            status: 404,
+            code: 'USER_NOT_FOUND',
+            entity: 'user'
+          }
+        });
       }
 
-      res.json({ user });
+      res.json({
+        success: true,
+        user
+      });
     } catch (error) {
       console.error("Error fetching current user:", error);
-      res.status(500).json({ error: "Failed to fetch user" });
+      res.status(500).json({
+        success: false,
+        error: {
+          type: 'ServerError',
+          message: "Failed to fetch user data",
+          status: 500,
+          code: 'USER_FETCH_FAILED'
+        }
+      });
     }
   }
 );

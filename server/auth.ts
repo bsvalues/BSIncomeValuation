@@ -99,7 +99,22 @@ export const verifyRefreshToken = async (token: string) => {
     const secretKey = JWT_SECRET as jwt.Secret;
     
     // Verify token signature using synchronous version for proper typing
-    const decoded = jwt.verify(token, secretKey) as JwtPayload;
+    let decoded: JwtPayload;
+    
+    try {
+      decoded = jwt.verify(token, secretKey) as JwtPayload;
+    } catch (jwtError) {
+      console.warn('JWT verification failed:', jwtError instanceof Error ? jwtError.message : 'Unknown error');
+      // Track JWT verification failures (potential security issue)
+      if (jwtError instanceof jwt.JsonWebTokenError) {
+        console.warn('Invalid JWT token structure or signature');
+      } else if (jwtError instanceof jwt.TokenExpiredError) {
+        console.warn('JWT token expired');
+      } else if (jwtError instanceof jwt.NotBeforeError) {
+        console.warn('JWT token not active yet');
+      }
+      return null;
+    }
 
     // Check if token exists and is not revoked
     const [storedToken] = await db
@@ -114,6 +129,7 @@ export const verifyRefreshToken = async (token: string) => {
       );
 
     if (!storedToken) {
+      console.warn('Token not found in database or revoked or expired');
       return null;
     }
 
@@ -140,41 +156,101 @@ export const authenticateJWT = (
 ) => {
   const authHeader = req.headers.authorization;
 
-  if (authHeader) {
-    const token = authHeader.split(" ")[1]; // Bearer TOKEN
-
-    try {
-      // Make sure JWT_SECRET is available
-      if (!JWT_SECRET || typeof JWT_SECRET !== 'string') {
-        throw new Error('JWT_SECRET must be provided as a string');
-      }
-      
-      // For TypeScript to recognize the secret properly
-      const secretKey = JWT_SECRET as jwt.Secret;
-      
-      // Use the synchronous version to avoid TypeScript errors with callbacks
-      const decoded = jwt.verify(token, secretKey) as JwtPayload;
-      req.user = decoded;
-      next();
-    } catch (err) {
-      return res.status(403).json({
-        success: false,
-        error: {
-          type: 'AuthorizationError',
-          message: "Invalid or expired token",
-          status: 403,
-          code: 'INVALID_TOKEN'
-        }
-      });
-    }
-  } else {
-    res.status(401).json({
+  if (!authHeader) {
+    return res.status(401).json({
       success: false,
       error: {
         type: 'AuthorizationError',
         message: "Authorization token required",
         status: 401,
         code: 'MISSING_TOKEN'
+      }
+    });
+  }
+
+  const parts = authHeader.split(" ");
+  
+  // Check if the Authorization header has the correct format (Bearer TOKEN)
+  if (parts.length !== 2 || parts[0] !== 'Bearer') {
+    return res.status(401).json({
+      success: false,
+      error: {
+        type: 'AuthorizationError',
+        message: "Authorization header format must be 'Bearer {token}'",
+        status: 401,
+        code: 'INVALID_AUTH_FORMAT'
+      }
+    });
+  }
+
+  const token = parts[1];
+
+  try {
+    // Make sure JWT_SECRET is available
+    if (!JWT_SECRET || typeof JWT_SECRET !== 'string') {
+      console.error('JWT_SECRET must be provided as a string');
+      return res.status(500).json({
+        success: false,
+        error: {
+          type: 'ServerError',
+          message: "Server configuration error",
+          status: 500,
+          code: 'SERVER_CONFIGURATION_ERROR'
+        }
+      });
+    }
+    
+    // For TypeScript to recognize the secret properly
+    const secretKey = JWT_SECRET as jwt.Secret;
+    
+    try {
+      // Use the synchronous version to avoid TypeScript errors with callbacks
+      const decoded = jwt.verify(token, secretKey) as JwtPayload;
+      req.user = decoded;
+      next();
+    } catch (jwtError) {
+      // Provide more specific error messages based on the JWT error type
+      if (jwtError instanceof jwt.TokenExpiredError) {
+        return res.status(401).json({
+          success: false,
+          error: {
+            type: 'AuthorizationError',
+            message: "Access token has expired",
+            status: 401,
+            code: 'TOKEN_EXPIRED'
+          }
+        });
+      } else if (jwtError instanceof jwt.JsonWebTokenError) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            type: 'AuthorizationError',
+            message: "Invalid token",
+            status: 403,
+            code: 'INVALID_TOKEN'
+          }
+        });
+      } else {
+        return res.status(403).json({
+          success: false,
+          error: {
+            type: 'AuthorizationError',
+            message: "Token validation failed",
+            status: 403,
+            code: 'TOKEN_VALIDATION_FAILED'
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.error('Error in authentication middleware:', err);
+    return res.status(500).json({
+      success: false,
+      error: {
+        type: 'ServerError',
+        message: "Authentication error",
+        status: 500,
+        code: 'AUTH_ERROR'
       }
     });
   }
