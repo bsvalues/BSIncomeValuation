@@ -153,7 +153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  router.post("/valuations", async (req: Request, res: Response) => {
+  router.post("/valuations", asyncHandler(async (req: Request, res: Response) => {
     try {
       const valuationData = insertValuationSchema.parse(req.body);
       const valuation = await storage.createValuation(valuationData);
@@ -161,39 +161,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       if (error instanceof ZodError) {
         const validationError = fromZodError(error);
-        res.status(400).json({ error: validationError.message });
-      } else {
-        res.status(500).json({ error: "Failed to create valuation" });
+        throw new ValidationError(validationError.message);
       }
+      throw error;
     }
-  });
+  }));
 
-  router.put("/valuations/:id", async (req: Request, res: Response) => {
-    try {
-      const valuationId = parseInt(req.params.id);
-      const valuationData = req.body;
-      const valuation = await storage.updateValuation(valuationId, valuationData);
-      if (!valuation) {
-        return res.status(404).json({ error: "Valuation not found" });
-      }
-      res.json(valuation);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update valuation" });
+  router.put("/valuations/:id", asyncHandler(async (req: Request, res: Response) => {
+    const valuationId = parseInt(req.params.id);
+    const valuationData = req.body;
+    const valuation = await storage.updateValuation(valuationId, valuationData);
+    
+    if (!valuation) {
+      throw new NotFoundError("Valuation not found");
     }
-  });
+    
+    res.json(valuation);
+  }));
 
-  router.delete("/valuations/:id", async (req: Request, res: Response) => {
-    try {
-      const valuationId = parseInt(req.params.id);
-      const success = await storage.deleteValuation(valuationId);
-      if (!success) {
-        return res.status(404).json({ error: "Valuation not found" });
-      }
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete valuation" });
+  router.delete("/valuations/:id", asyncHandler(async (req: Request, res: Response) => {
+    const valuationId = parseInt(req.params.id);
+    const success = await storage.deleteValuation(valuationId);
+    
+    if (!success) {
+      throw new NotFoundError("Valuation not found");
     }
-  });
+    
+    res.json({ success: true });
+  }));
 
   // Register API routes with /api prefix
   app.use("/api", router);

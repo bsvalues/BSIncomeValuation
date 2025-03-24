@@ -53,6 +53,12 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Helper method to run a function within a transaction
+  private async withTransaction<T>(fn: (tx: PostgresJsDatabase) => Promise<T>): Promise<T> {
+    return db.transaction(async (tx) => {
+      return await fn(tx);
+    });
+  }
   // User operations
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -132,11 +138,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createValuation(valuation: InsertValuation): Promise<Valuation> {
-    const [newValuation] = await db
-      .insert(valuations)
-      .values(valuation)
-      .returning();
-    return newValuation;
+    // Use a transaction to ensure data consistency
+    return this.withTransaction(async (tx) => {
+      const [newValuation] = await tx
+        .insert(valuations)
+        .values(valuation)
+        .returning();
+      
+      // If we need to do additional operations as part of valuation creation
+      // we can do them here within the same transaction
+      
+      return newValuation;
+    });
   }
 
   async updateValuation(id: number, valuation: Partial<InsertValuation>): Promise<Valuation | undefined> {
@@ -149,11 +162,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteValuation(id: number): Promise<boolean> {
-    const result = await db
-      .delete(valuations)
-      .where(eq(valuations.id, id))
-      .returning({ id: valuations.id });
-    return result.length > 0;
+    // Use transactions to ensure atomicity when deleting data
+    return this.withTransaction(async (tx) => {
+      // Additional logic could be added here if we needed to delete related records
+      // or perform additional cleanup within the transaction
+      
+      const result = await tx
+        .delete(valuations)
+        .where(eq(valuations.id, id))
+        .returning({ id: valuations.id });
+      
+      return result.length > 0;
+    });
   }
   
   // Income Multiplier operations
