@@ -95,8 +95,11 @@ export const verifyRefreshToken = async (token: string) => {
       return null;
     }
     
+    // For TypeScript to recognize the secret properly
+    const secretKey = JWT_SECRET as jwt.Secret;
+    
     // Verify token signature using synchronous version for proper typing
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, secretKey) as JwtPayload;
 
     // Check if token exists and is not revoked
     const [storedToken] = await db
@@ -146,8 +149,11 @@ export const authenticateJWT = (
         throw new Error('JWT_SECRET must be provided as a string');
       }
       
+      // For TypeScript to recognize the secret properly
+      const secretKey = JWT_SECRET as jwt.Secret;
+      
       // Use the synchronous version to avoid TypeScript errors with callbacks
-      const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+      const decoded = jwt.verify(token, secretKey) as JwtPayload;
       req.user = decoded;
       next();
     } catch (err) {
