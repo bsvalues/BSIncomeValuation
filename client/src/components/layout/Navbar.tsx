@@ -44,12 +44,12 @@ export default function Navbar() {
   };
 
   return (
-    <header className="bg-primary-700 text-white py-4 shadow-md">
+    <header className="bg-blue-600 text-white py-4 shadow-md">
       <div className="max-w-6xl mx-auto px-4">
         <nav className="flex justify-between items-center">
           <div className="flex items-center">
             <Link href="/">
-              <div className="text-2xl font-bold text-white hover:text-primary-100 transition cursor-pointer">
+              <div className="text-2xl font-bold text-white hover:text-blue-100 transition cursor-pointer">
                 Income Valuation SaaS
               </div>
             </Link>
@@ -58,7 +58,7 @@ export default function Navbar() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
             <Link href="/">
-              <div className={`text-sm font-medium ${isActive('/') ? 'text-white' : 'text-primary-100 hover:text-white'} transition cursor-pointer`}>
+              <div className={`text-sm font-medium ${isActive('/') ? 'text-white font-bold' : 'text-blue-100 hover:text-white'} transition cursor-pointer`}>
                 Home
               </div>
             </Link>
@@ -66,29 +66,29 @@ export default function Navbar() {
             {isAuthenticated ? (
               <>
                 <Link href="/dashboard">
-                  <div className={`text-sm font-medium ${isActive('/dashboard') ? 'text-white' : 'text-primary-100 hover:text-white'} transition cursor-pointer`}>
+                  <div className={`text-sm font-medium ${isActive('/dashboard') ? 'text-white font-bold' : 'text-blue-100 hover:text-white'} transition cursor-pointer`}>
                     Dashboard
                   </div>
                 </Link>
                 <Link href="/calculator">
-                  <div className={`text-sm font-medium ${isActive('/calculator') ? 'text-white' : 'text-primary-100 hover:text-white'} transition cursor-pointer`}>
+                  <div className={`text-sm font-medium ${isActive('/calculator') ? 'text-white font-bold' : 'text-blue-100 hover:text-white'} transition cursor-pointer`}>
                     Calculator
                   </div>
                 </Link>
                 <Link href="/ai-agents">
-                  <div className={`text-sm font-medium ${isActive('/ai-agents') ? 'text-white' : 'text-primary-100 hover:text-white'} transition cursor-pointer`}>
+                  <div className={`text-sm font-medium ${isActive('/ai-agents') ? 'text-white font-bold' : 'text-blue-100 hover:text-white'} transition cursor-pointer`}>
                     AI Insights
                   </div>
                 </Link>
                 <Link href="/valuation/new">
-                  <Button size="sm" className="bg-white text-primary-700 hover:bg-primary-50">
+                  <Button size="sm" className="bg-white text-blue-600 hover:bg-blue-50 font-semibold">
                     New Valuation
                   </Button>
                 </Link>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="flex items-center space-x-1 focus:outline-none">
-                      <Avatar className="h-8 w-8 bg-primary-600 text-white border-2 border-white hover:bg-primary-500 transition">
+                      <Avatar className="h-8 w-8 bg-blue-700 text-white border-2 border-white hover:bg-blue-500 transition">
                         <AvatarFallback>{getUserInitials()}</AvatarFallback>
                       </Avatar>
                     </button>
@@ -115,12 +115,12 @@ export default function Navbar() {
             ) : (
               <>
                 <Link href="/login">
-                  <div className={`text-sm font-medium ${isActive('/login') ? 'text-white' : 'text-primary-100 hover:text-white'} transition cursor-pointer`}>
+                  <div className={`text-sm font-medium ${isActive('/login') ? 'text-white font-bold' : 'text-blue-100 hover:text-white'} transition cursor-pointer`}>
                     Login
                   </div>
                 </Link>
                 <Link href="/register">
-                  <Button size="sm" className="bg-white text-primary-700 hover:bg-primary-50">
+                  <Button size="sm" className="bg-white text-blue-600 hover:bg-blue-50 font-semibold">
                     Register
                   </Button>
                 </Link>
@@ -146,7 +146,7 @@ export default function Navbar() {
             <div className="flex flex-col space-y-4">
               <Link href="/">
                 <div 
-                  className={`px-2 py-1 rounded ${isActive('/') ? 'bg-primary-600 text-white' : 'text-primary-100 hover:text-white'} cursor-pointer`}
+                  className={`px-2 py-1 rounded ${isActive('/') ? 'bg-blue-700 text-white font-bold' : 'text-blue-100 hover:text-white'} cursor-pointer`}
                   onClick={closeMenu}
                 >
                   Home
@@ -157,7 +157,7 @@ export default function Navbar() {
                 <>
                   <Link href="/dashboard">
                     <div 
-                      className={`px-2 py-1 rounded ${isActive('/dashboard') ? 'bg-primary-600 text-white' : 'text-primary-100 hover:text-white'} cursor-pointer`}
+                      className={`px-2 py-1 rounded ${isActive('/dashboard') ? 'bg-blue-700 text-white font-bold' : 'text-blue-100 hover:text-white'} cursor-pointer`}
                       onClick={closeMenu}
                     >
                       Dashboard
@@ -165,7 +165,7 @@ export default function Navbar() {
                   </Link>
                   <Link href="/calculator">
                     <div 
-                      className={`px-2 py-1 rounded ${isActive('/calculator') ? 'bg-primary-600 text-white' : 'text-primary-100 hover:text-white'} cursor-pointer`}
+                      className={`px-2 py-1 rounded ${isActive('/calculator') ? 'bg-blue-700 text-white font-bold' : 'text-blue-100 hover:text-white'} cursor-pointer`}
                       onClick={closeMenu}
                     >
                       Calculator
@@ -173,7 +173,7 @@ export default function Navbar() {
                   </Link>
                   <Link href="/ai-agents">
                     <div 
-                      className={`px-2 py-1 rounded ${isActive('/ai-agents') ? 'bg-primary-600 text-white' : 'text-primary-100 hover:text-white'} cursor-pointer`}
+                      className={`px-2 py-1 rounded ${isActive('/ai-agents') ? 'bg-blue-700 text-white font-bold' : 'text-blue-100 hover:text-white'} cursor-pointer`}
                       onClick={closeMenu}
                     >
                       AI Insights
@@ -181,19 +181,19 @@ export default function Navbar() {
                   </Link>
                   <Link href="/valuation/new">
                     <div 
-                      className="px-2 py-1 bg-white text-primary-700 hover:bg-primary-50 rounded cursor-pointer"
+                      className="px-2 py-1 bg-white text-blue-600 hover:bg-blue-50 rounded cursor-pointer font-semibold"
                       onClick={closeMenu}
                     >
                       New Valuation
                     </div>
                   </Link>
-                  <div className="pt-2 border-t border-primary-600">
-                    <div className="px-2 py-1 text-sm flex items-center text-primary-100">
+                  <div className="pt-2 border-t border-blue-500">
+                    <div className="px-2 py-1 text-sm flex items-center text-white">
                       <User className="mr-2 h-4 w-4" />
                       <span>Signed in as <span className="font-semibold text-white">{user?.username}</span></span>
                     </div>
                     <button 
-                      className="mt-2 px-2 py-1 w-full text-left text-red-300 hover:text-white flex items-center"
+                      className="mt-2 px-2 py-1 w-full text-left text-white bg-red-500 hover:bg-red-600 rounded flex items-center"
                       onClick={() => {
                         handleLogout();
                         closeMenu();
@@ -208,7 +208,7 @@ export default function Navbar() {
                 <>
                   <Link href="/login">
                     <div 
-                      className={`px-2 py-1 rounded ${isActive('/login') ? 'bg-primary-600 text-white' : 'text-primary-100 hover:text-white'} cursor-pointer`}
+                      className={`px-2 py-1 rounded ${isActive('/login') ? 'bg-blue-700 text-white font-bold' : 'text-blue-100 hover:text-white'} cursor-pointer`}
                       onClick={closeMenu}
                     >
                       Login
@@ -216,7 +216,7 @@ export default function Navbar() {
                   </Link>
                   <Link href="/register">
                     <div 
-                      className="px-2 py-1 bg-white text-primary-700 hover:bg-primary-50 rounded cursor-pointer"
+                      className="px-2 py-1 bg-white text-blue-600 hover:bg-blue-50 rounded cursor-pointer font-semibold"
                       onClick={closeMenu}
                     >
                       Register
