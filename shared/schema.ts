@@ -115,15 +115,35 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 // Auth schemas
 export const loginSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  username: z.string()
+    .min(3, "Username must be at least 3 characters")
+    .max(50, "Username cannot exceed 50 characters")
+    .trim(),
+  password: z.string()
+    .min(6, "Password must be at least 6 characters")
+    .max(100, "Password is too long"),
 });
 
 export const registerSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  email: z.string().email("Invalid email address"),
-  fullName: z.string().optional(),
+  username: z.string()
+    .min(3, "Username must be at least 3 characters")
+    .max(50, "Username cannot exceed 50 characters")
+    .regex(/^[a-zA-Z0-9._-]+$/, "Username can only contain letters, numbers, and ._-")
+    .trim(),
+  password: z.string()
+    .min(6, "Password must be at least 6 characters")
+    .max(100, "Password is too long")
+    .regex(/.*[A-Z].*/, "Password must contain at least one uppercase letter")
+    .regex(/.*[a-z].*/, "Password must contain at least one lowercase letter")
+    .regex(/.*\d.*/, "Password must contain at least one number"),
+  email: z.string()
+    .email("Invalid email address")
+    .trim()
+    .toLowerCase(),
+  fullName: z.string()
+    .max(100, "Full name is too long")
+    .optional()
+    .transform(val => val === "" ? undefined : val?.trim()),
 });
 
 export const insertIncomeSchema = createInsertSchema(incomes)
