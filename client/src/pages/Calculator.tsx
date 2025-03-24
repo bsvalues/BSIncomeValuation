@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOnboarding } from "@/contexts/OnboardingContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ArrowRight, CalculatorIcon, Plus, Trash2 } from "lucide-react";
 import { useLocation } from "wouter";
@@ -52,6 +53,7 @@ const emptyIncomeItem = {
 export default function Calculator() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { setCurrentStep } = useOnboarding();
   const [, setLocation] = useLocation();
   
   // State for income items
@@ -133,6 +135,16 @@ export default function Calculator() {
   
   // Calculate the valuation whenever income items change
   const valuation = calculateValuation();
+  
+  // Trigger calculator onboarding step when component is loaded
+  useEffect(() => {
+    // Use a small delay to ensure the component is fully rendered
+    const timer = setTimeout(() => {
+      setCurrentStep('calculator-intro');
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [setCurrentStep]);
   
   // Add a new income item
   const addIncomeItem = () => {

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOnboarding } from "@/contexts/OnboardingContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   IncomeAnalysis, 
@@ -25,6 +26,7 @@ import ServerError from "@/pages/ServerError";
 export default function AgentDashboard() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
+  const { setCurrentStep } = useOnboarding();
   const [location, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("insights");
   const [globalErrorState, setGlobalErrorState] = useState<{
@@ -145,6 +147,18 @@ export default function AgentDashboard() {
       setLocation("/login");
     }
   }, [authLoading, isAuthenticated, setLocation, toast]);
+  
+  // Trigger agent-intro onboarding step when dashboard is loaded
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && !globalErrorState.hasError) {
+      // Use a small delay to ensure the component is fully rendered
+      const timer = setTimeout(() => {
+        setCurrentStep('agent-intro');
+      }, 800);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [authLoading, isAuthenticated, globalErrorState.hasError, setCurrentStep]);
 
   // Check for critical server errors
   useEffect(() => {
