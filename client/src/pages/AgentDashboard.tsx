@@ -19,7 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { ApiError } from "@/components/ui/api-error";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronRight, LineChart, Lightbulb, AlertTriangle, FileText, RefreshCw, Loader2, InfoIcon, UserIcon, PieChart, Lock } from "lucide-react";
+import { ChevronRight, LineChart, Lightbulb, AlertTriangle, FileText, RefreshCw, Loader2, InfoIcon, UserIcon, PieChart, Lock, ServerIcon } from "lucide-react";
 import { useLocation } from "wouter";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ServerError from "@/pages/ServerError";
@@ -999,6 +999,24 @@ export default function AgentDashboard() {
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* MCP Integration Tab */}
+          <TabsContent value="mcp">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <ServerIcon className="mr-2 h-5 w-5" />
+                  Multi-Channel Processing Integration
+                </CardTitle>
+                <CardDescription>
+                  Access advanced data processing features through the MCP integration
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AgentResults />
               </CardContent>
             </Card>
           </TabsContent>
