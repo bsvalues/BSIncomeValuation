@@ -99,7 +99,7 @@ export default function ValuationForm() {
     isLoading: incomeLoading,
     isError: isIncomeError,
     error: incomeError
-  } = useQuery({
+  } = useQuery<Income, Error>({
     queryKey: [`/api/incomes/${editIncomeId}`],
     enabled: !!editIncomeId && !!user,
   });

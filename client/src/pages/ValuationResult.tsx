@@ -50,7 +50,7 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
     error: incomesError,
     refetch: refetchIncomes
   } = useQuery<Income[], Error>({
-    queryKey: user ? [`/api/users/${user.id}/incomes`] : null,
+    queryKey: [`/api/users/${user?.id || 0}/incomes`],
     enabled: !!user && isAuthenticated,
     retry: 1,
   });

@@ -105,6 +105,7 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
         type: zodError.name,
         message: zodError.message,
         status: zodError.status,
+        code: zodError.code,
         validationErrors: zodError.errors
       }
     });
@@ -114,13 +115,37 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
   // Handle Drizzle/Database errors
   if (err.code && (err.code.startsWith('23') || err.code.startsWith('42'))) {
     console.error(`Database Error (${err.code}): ${err.message}`);
+    
+    // Map DB error code to something more user-friendly
+    let dbErrorCode = 'DATABASE_ERROR';
+    let dbErrorMessage = 'Database operation failed';
+    
+    // Handle specific PostgreSQL error codes
+    if (err.code === '23505') {
+      dbErrorCode = 'UNIQUE_VIOLATION';
+      dbErrorMessage = 'A record with this information already exists';
+    } else if (err.code === '23503') {
+      dbErrorCode = 'FOREIGN_KEY_VIOLATION';
+      dbErrorMessage = 'Referenced record does not exist';
+    } else if (err.code === '23502') {
+      dbErrorCode = 'NOT_NULL_VIOLATION';
+      dbErrorMessage = 'Required field is missing';
+    } else if (err.code === '42P01') {
+      dbErrorCode = 'UNDEFINED_TABLE';
+      dbErrorMessage = 'Database schema error';
+    }
+    
     return res.status(400).json({
       success: false,
       error: {
         type: 'DatabaseError',
-        message: 'Database operation failed',
+        message: dbErrorMessage,
         status: 400,
-        ...(process.env.NODE_ENV === 'development' && { details: err.message })
+        code: dbErrorCode,
+        ...(process.env.NODE_ENV === 'development' && { 
+          details: err.message,
+          originalCode: err.code 
+        })
       }
     });
   }
@@ -143,13 +168,19 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
     console.log(`Info (${status}): ${message}`);
   }
   
-  // Send standardized response
+  // Add error code if available
+  const errorCode = err.code || 'INTERNAL_SERVER_ERROR';
+  
+  // Send standardized response with error code
   res.status(status).json({
     success: false,
     error: {
       type: errorType,
       message,
       status,
+      code: errorCode,
+      ...(err.entity && { entity: err.entity }),
+      ...(err.errors && { validationErrors: err.errors }),
       ...(details && { details })
     }
   });
