@@ -5,9 +5,18 @@ import { eq, and, gt } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-// JWT Secret - In production, use an environment variable
-const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key";
-const JWT_EXPIRES_IN = "1h"; // Access token expiry
+// JWT Secret configuration
+const JWT_SECRET = process.env.JWT_SECRET;
+// In development only, fallback to a fixed value if JWT_SECRET is not set
+if (!JWT_SECRET && process.env.NODE_ENV !== 'production') {
+  console.warn('Warning: JWT_SECRET not set. Using insecure default for development only.');
+}
+// For production, enforce that JWT_SECRET must be set
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('JWT_SECRET environment variable must be set in production mode');
+}
+
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1h"; // Access token expiry 
 const REFRESH_TOKEN_EXPIRES_IN = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
 
 // Interface for JWT payload

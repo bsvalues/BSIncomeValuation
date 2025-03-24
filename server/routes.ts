@@ -9,6 +9,7 @@ import { dashboardRouter } from "./dashboardRoutes";
 import { valuationRouter } from "./valuationRoutes";
 import { agentRouter } from "./agentRoutes";
 import { devAuthRouter } from "./devAuthRoutes";
+import { asyncHandler, NotFoundError } from "./errorHandler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const router = express.Router();
@@ -34,14 +35,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   router.use("/dev-auth", devAuthRouter);
   
   // Income multipliers route
-  router.get("/multipliers", async (req: Request, res: Response) => {
-    try {
-      const multipliers = await storage.getAllIncomeMultipliers();
-      res.json(multipliers);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to retrieve income multipliers" });
-    }
-  });
+  router.get("/multipliers", asyncHandler(async (req: Request, res: Response) => {
+    const multipliers = await storage.getAllIncomeMultipliers();
+    res.json(multipliers);
+  }));
 
   // User routes
   router.post("/users", async (req: Request, res: Response) => {
