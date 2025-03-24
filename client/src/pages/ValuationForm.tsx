@@ -120,11 +120,11 @@ export default function ValuationForm() {
   // Update form with existing income data if editing
   useEffect(() => {
     if (existingIncome && !incomeLoading && editIncomeId) {
-      // Pre-fill form with existing income data
+      // Pre-fill form with existing income data, ensuring frequency is the correct type
       const formattedIncome = {
         source: existingIncome.source,
         amount: existingIncome.amount.toString(),
-        frequency: existingIncome.frequency,
+        frequency: existingIncome.frequency as "monthly" | "yearly" | "quarterly" | "weekly",
         description: existingIncome.description || "",
       };
       
@@ -195,11 +195,13 @@ export default function ValuationForm() {
         try {
           // Save income to database
           const incomeResponse = await apiRequest("POST", "/api/incomes", {
-            userId: user.id,
-            source: income.source,
-            amount: amount,
-            frequency: income.frequency,
-            description: income.description || null,
+            body: JSON.stringify({
+              userId: user.id,
+              source: income.source,
+              amount: amount,
+              frequency: income.frequency,
+              description: income.description || null,
+            })
           });
           
           if (incomeResponse && incomeResponse.id) {
@@ -236,16 +238,15 @@ export default function ValuationForm() {
       
       try {
         // Create valuation
-        const valuation = await apiRequest("POST", "/api/valuations", {
-          userId: user.id,
-          totalAnnualIncome,
-          multiplier: finalMultiplier,
-          valuationAmount,
-          notes: data.notes || null,
+        const valuationResponse = await apiRequest("POST", "/api/valuations", {
+          body: JSON.stringify({
+            userId: user.id,
+            totalAnnualIncome,
+            multiplier: finalMultiplier,
+            valuationAmount,
+            notes: data.notes || null,
+          })
         });
-        
-        // Get the valuation ID from the response
-        const valuationResponse = await valuation.json();
         
         // Invalidate queries to refresh data
         queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/incomes`] });

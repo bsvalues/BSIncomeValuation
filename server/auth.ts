@@ -52,15 +52,24 @@ export const comparePassword = async (
 
 // Generate JWT tokens
 export const generateTokens = (payload: JwtPayload) => {
+  // Make sure JWT_SECRET is a string
+  if (!JWT_SECRET || typeof JWT_SECRET !== 'string') {
+    throw new Error('JWT_SECRET must be provided as a string');
+  }
+  
   // Access token
-  const accessToken = jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
-  });
+  const accessToken = jwt.sign(
+    payload, 
+    JWT_SECRET, 
+    { expiresIn: JWT_EXPIRES_IN }
+  );
 
   // Refresh token (longer lived)
-  const refreshToken = jwt.sign(payload, JWT_SECRET, {
-    expiresIn: "30d",
-  });
+  const refreshToken = jwt.sign(
+    payload, 
+    JWT_SECRET, 
+    { expiresIn: "30d" }
+  );
 
   return { accessToken, refreshToken };
 };
@@ -80,7 +89,13 @@ export const storeRefreshToken = async (userId: number, token: string) => {
 // Verify refresh token from database
 export const verifyRefreshToken = async (token: string) => {
   try {
-    // Verify token signature
+    // Make sure JWT_SECRET is available
+    if (!JWT_SECRET || typeof JWT_SECRET !== 'string') {
+      console.error('JWT_SECRET must be provided as a string');
+      return null;
+    }
+    
+    // Verify token signature using synchronous version for proper typing
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
 
     // Check if token exists and is not revoked
@@ -101,6 +116,7 @@ export const verifyRefreshToken = async (token: string) => {
 
     return decoded;
   } catch (error) {
+    console.warn('Error verifying refresh token:', error instanceof Error ? error.message : 'Unknown error');
     return null;
   }
 };
@@ -124,16 +140,37 @@ export const authenticateJWT = (
   if (authHeader) {
     const token = authHeader.split(" ")[1]; // Bearer TOKEN
 
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-      if (err) {
-        return res.status(403).json({ error: "Invalid or expired token" });
+    try {
+      // Make sure JWT_SECRET is available
+      if (!JWT_SECRET || typeof JWT_SECRET !== 'string') {
+        throw new Error('JWT_SECRET must be provided as a string');
       }
-
-      req.user = user as JwtPayload;
+      
+      // Use the synchronous version to avoid TypeScript errors with callbacks
+      const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+      req.user = decoded;
       next();
-    });
+    } catch (err) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          type: 'AuthorizationError',
+          message: "Invalid or expired token",
+          status: 403,
+          code: 'INVALID_TOKEN'
+        }
+      });
+    }
   } else {
-    res.status(401).json({ error: "Authorization token required" });
+    res.status(401).json({
+      success: false,
+      error: {
+        type: 'AuthorizationError',
+        message: "Authorization token required",
+        status: 401,
+        code: 'MISSING_TOKEN'
+      }
+    });
   }
 };
 
