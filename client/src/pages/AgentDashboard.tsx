@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { AgentResults } from "@/components/agent/AgentResults";
 import { 
   IncomeAnalysis, 
   AnomalyDetection, 
@@ -362,11 +363,12 @@ export default function AgentDashboard() {
         </p>
 
         <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-4 mb-8">
+          <TabsList className="grid grid-cols-5 mb-8">
             <TabsTrigger value="insights">Valuation Insights</TabsTrigger>
             <TabsTrigger value="anomalies">Anomaly Detection</TabsTrigger>
             <TabsTrigger value="quality">Data Quality</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="mcp">MCP Integration</TabsTrigger>
           </TabsList>
 
           {/* Valuation Insights Tab */}
