@@ -11,6 +11,7 @@ import { ApiError } from "@/components/ui/api-error";
 import ServerError from "@/pages/ServerError";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOnboarding } from "@/contexts/OnboardingContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ValuationResultProps {
@@ -25,6 +26,7 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { setCurrentStep } = useOnboarding();
   const [downloadError, setDownloadError] = useState<string | null>(null);
   
   // Get valuation data
@@ -63,6 +65,18 @@ export default function ValuationResult({ id: propId }: ValuationResultProps = {
       setLocation("/login");
     }
   }, [authLoading, isAuthenticated, setLocation, toast]);
+  
+  // Trigger valuation onboarding step when component is loaded
+  useEffect(() => {
+    if (!valuationLoading && !isValuationError && valuation) {
+      // Small delay to ensure component is fully rendered
+      const timer = setTimeout(() => {
+        setCurrentStep('valuation-intro');
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [valuationLoading, isValuationError, valuation, setCurrentStep]);
 
   const formatCurrency = (amount: number | string) => {
     return new Intl.NumberFormat('en-US', { 

@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { insertIncomeSchema, insertValuationSchema, Income } from "@shared/schema";
 import { Plus, Trash2, Info, Check, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ApiError } from "@/components/ui/api-error";
@@ -71,6 +72,7 @@ export default function ValuationForm() {
   const [editMatch, editParams] = useRoute('/valuation/edit/:id');
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { setCurrentStep, hasCompletedOnboarding } = useOnboarding();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [multiplierFetchError, setMultiplierFetchError] = useState<Error | null>(null);
@@ -141,6 +143,18 @@ export default function ValuationForm() {
       setMultiplierFetchError(null);
     }
   }, [isMultipliersError, multipliersError]);
+  
+  // Trigger income entry onboarding step when form is loaded (if not editing)
+  useEffect(() => {
+    if (!editIncomeId && !authLoading && isAuthenticated && !incomeLoading) {
+      // Use a small delay to ensure the component is fully rendered
+      const timer = setTimeout(() => {
+        setCurrentStep('income-entry');
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [editIncomeId, authLoading, isAuthenticated, incomeLoading, setCurrentStep]);
 
   const onSubmit = async (data: IncomeFormValues) => {
     if (!user) {
