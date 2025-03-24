@@ -5,50 +5,75 @@ import { z } from 'zod';
 export class ValidationError extends Error {
   status: number;
   errors: any;
+  code: string;
   
-  constructor(message: string, errors?: any) {
+  constructor(message: string, errors?: any, code = 'VALIDATION_ERROR') {
     super(message);
     this.name = 'ValidationError';
     this.status = 400;
     this.errors = errors;
+    this.code = code;
   }
 }
 
 export class NotFoundError extends Error {
   status: number;
+  code: string;
+  entity?: string;
   
-  constructor(message = 'Resource not found') {
+  constructor(message = 'Resource not found', entity?: string) {
     super(message);
     this.name = 'NotFoundError';
     this.status = 404;
+    this.code = 'RESOURCE_NOT_FOUND';
+    this.entity = entity;
   }
 }
 
 export class AuthorizationError extends Error {
   status: number;
+  code: string;
   
-  constructor(message = 'Unauthorized access') {
+  constructor(message = 'Unauthorized access', code = 'UNAUTHORIZED') {
     super(message);
     this.name = 'AuthorizationError';
     this.status = 401;
+    this.code = code;
   }
 }
 
 export class ForbiddenError extends Error {
   status: number;
+  code: string;
   
-  constructor(message = 'Access forbidden') {
+  constructor(message = 'Access forbidden', code = 'FORBIDDEN') {
     super(message);
     this.name = 'ForbiddenError';
     this.status = 403;
+    this.code = code;
   }
 }
 
-// Handler for Zod validation errors
+export class ConflictError extends Error {
+  status: number;
+  code: string;
+  entity?: string;
+  
+  constructor(message = 'Resource already exists', entity?: string) {
+    super(message);
+    this.name = 'ConflictError';
+    this.status = 409;
+    this.code = 'RESOURCE_CONFLICT';
+    this.entity = entity;
+  }
+}
+
+// Handler for Zod validation errors - formats the error in a more user-friendly way
 export function handleZodError(error: z.ZodError) {
   const formattedErrors = error.errors.map(err => ({
     path: err.path.join('.'),
-    message: err.message
+    message: err.message,
+    code: 'INVALID_INPUT'
   }));
   
   return new ValidationError('Validation failed', formattedErrors);

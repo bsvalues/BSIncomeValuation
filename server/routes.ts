@@ -150,38 +150,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // Valuation routes
-  router.get("/users/:userId/valuations", async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      const valuations = await storage.getValuationsByUserId(userId);
-      res.json(valuations);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to retrieve valuations" });
+  router.get("/users/:userId/valuations", asyncHandler(async (req: Request, res: Response) => {
+    const userId = parseInt(req.params.userId);
+    
+    // Validate ID parameter
+    if (isNaN(userId) || userId <= 0) {
+      throw new ValidationError("Invalid user ID", { userId: "Must be a positive integer" });
     }
-  });
+    
+    const valuations = await storage.getValuationsByUserId(userId);
+    res.json({
+      success: true,
+      data: valuations,
+      count: valuations.length
+    });
+  }));
 
-  router.get("/valuations/:id", async (req: Request, res: Response) => {
-    try {
-      const valuationId = parseInt(req.params.id);
-      const valuation = await storage.getValuationById(valuationId);
-      if (!valuation) {
-        return res.status(404).json({ error: "Valuation not found" });
-      }
-      res.json(valuation);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to retrieve valuation" });
+  router.get("/valuations/:id", asyncHandler(async (req: Request, res: Response) => {
+    const valuationId = parseInt(req.params.id);
+    
+    // Validate ID parameter
+    if (isNaN(valuationId) || valuationId <= 0) {
+      throw new ValidationError("Invalid valuation ID", { id: "Must be a positive integer" });
     }
-  });
+    
+    const valuation = await storage.getValuationById(valuationId);
+    if (!valuation) {
+      throw new NotFoundError("Valuation not found");
+    }
+    
+    res.json({
+      success: true,
+      data: valuation
+    });
+  }));
 
   router.post("/valuations", asyncHandler(async (req: Request, res: Response) => {
+    let valuationData;
     try {
-      const valuationData = insertValuationSchema.parse(req.body);
-      const valuation = await storage.createValuation(valuationData);
-      res.status(201).json({
-        success: true,
-        data: valuation,
-        message: "Valuation created successfully"
-      });
+      valuationData = insertValuationSchema.parse(req.body);
     } catch (error) {
       if (error instanceof ZodError) {
         const validationError = fromZodError(error);
@@ -189,29 +196,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       throw error;
     }
+    
+    const valuation = await storage.createValuation(valuationData);
+    res.status(201).json({
+      success: true,
+      data: valuation,
+      message: "Valuation created successfully"
+    });
   }));
 
   router.put("/valuations/:id", asyncHandler(async (req: Request, res: Response) => {
     const valuationId = parseInt(req.params.id);
-    const valuationData = req.body;
+    
+    // Validate ID parameter
+    if (isNaN(valuationId) || valuationId <= 0) {
+      throw new ValidationError("Invalid valuation ID", { id: "Must be a positive integer" });
+    }
+    
+    // Validate update data
+    const valuationData = insertValuationSchema.partial().parse(req.body);
     const valuation = await storage.updateValuation(valuationId, valuationData);
     
     if (!valuation) {
       throw new NotFoundError("Valuation not found");
     }
     
-    res.json(valuation);
+    res.json({
+      success: true,
+      data: valuation,
+      message: "Valuation updated successfully"
+    });
   }));
 
   router.delete("/valuations/:id", asyncHandler(async (req: Request, res: Response) => {
     const valuationId = parseInt(req.params.id);
+    
+    // Validate ID parameter
+    if (isNaN(valuationId) || valuationId <= 0) {
+      throw new ValidationError("Invalid valuation ID", { id: "Must be a positive integer" });
+    }
+    
     const success = await storage.deleteValuation(valuationId);
     
     if (!success) {
       throw new NotFoundError("Valuation not found");
     }
     
-    res.json({ success: true });
+    res.json({
+      success: true,
+      message: "Valuation deleted successfully"
+    });
   }));
 
   // Register API routes with /api prefix
