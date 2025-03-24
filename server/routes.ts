@@ -8,6 +8,7 @@ import { authRouter } from "./authRoutes";
 import { dashboardRouter } from "./dashboardRoutes";
 import { valuationRouter } from "./valuationRoutes";
 import { agentRouter } from "./agentRoutes";
+import { devAuthRouter } from "./devAuthRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const router = express.Router();
@@ -28,6 +29,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register AI agent routes
   router.use("/agents", agentRouter);
+  
+  // Register dev auth routes (only available in development)
+  router.use("/dev-auth", devAuthRouter);
   
   // Income multipliers route
   router.get("/multipliers", async (req: Request, res: Response) => {

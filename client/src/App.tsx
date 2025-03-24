@@ -11,6 +11,8 @@ import ValuationForm from "@/pages/ValuationForm";
 import ValuationResult from "@/pages/ValuationResult";
 import Calculator from "@/pages/Calculator";
 import DevDocs from "@/pages/DevDocs";
+import DevLogin from "@/pages/DevLogin";
+import DevTokenManagement from "@/pages/DevTokenManagement";
 import AgentDashboard from "@/pages/AgentDashboard";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
