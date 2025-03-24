@@ -36,6 +36,19 @@ export const authTokens = pgTable("auth_tokens", {
   revoked: boolean("revoked").default(false).notNull(),
 });
 
+// Development one-time auth tokens for instant login
+export const devAuthTokens = pgTable("dev_auth_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  used: boolean("used").default(false).notNull(),
+  description: text("description"),
+  createdBy: text("created_by"),
+  ipAddress: text("ip_address"),
+});
+
 // Income sources enum
 export const incomeSourceEnum = pgEnum("income_source", [
   "salary",
@@ -166,6 +179,17 @@ export const insertIncomeMultiplierSchema = createInsertSchema(incomeMultipliers
     ),
   });
 
+// Dev auth token schema
+export const createDevAuthTokenSchema = z.object({
+  userId: z.number().int().positive(),
+  description: z.string().optional(),
+  expiresInMinutes: z.number().int().min(1).max(60 * 24).default(60), // Default 1 hour, max 24 hours
+});
+
+export const devAuthLoginSchema = z.object({
+  token: z.string().min(10),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -178,3 +202,6 @@ export type InsertValuation = z.infer<typeof insertValuationSchema>;
 
 export type IncomeMultiplier = typeof incomeMultipliers.$inferSelect;
 export type InsertIncomeMultiplier = z.infer<typeof insertIncomeMultiplierSchema>;
+
+export type DevAuthToken = typeof devAuthTokens.$inferSelect;
+export type CreateDevAuthToken = z.infer<typeof createDevAuthTokenSchema>;
