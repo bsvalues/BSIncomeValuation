@@ -17,6 +17,8 @@ import AgentDashboard from "@/pages/AgentDashboard";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { OnboardingProvider } from "@/contexts/OnboardingContext";
+import { OnboardingWizard, MascotButton } from "@/components/onboarding";
 import { useEffect } from "react";
 import { AIDevBadge } from "@/components/AIDevBadge";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -90,18 +92,23 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ErrorBoundary>
-          <div className="flex flex-col min-h-screen">
-            <Navbar />
-            <main className="flex-grow">
-              <Router />
-            </main>
-            <Footer />
-          </div>
-          <Toaster />
-          {/* Dev badge - only visible in development mode */}
-          <AIDevBadge />
-        </ErrorBoundary>
+        <OnboardingProvider>
+          <ErrorBoundary>
+            <div className="flex flex-col min-h-screen">
+              <Navbar />
+              <main className="flex-grow">
+                <Router />
+              </main>
+              <Footer />
+            </div>
+            <Toaster />
+            {/* Dev badge - only visible in development mode */}
+            <AIDevBadge />
+            {/* Onboarding components */}
+            <OnboardingWizard />
+            <MascotButton />
+          </ErrorBoundary>
+        </OnboardingProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

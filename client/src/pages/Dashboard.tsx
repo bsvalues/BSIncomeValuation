@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { ValuationHistoryChart } from "@/components/ui/valuation-history-chart";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOnboarding } from "@/contexts/OnboardingContext";
 import { ApiError } from "@/components/ui/api-error";
 import ServerError from "@/pages/ServerError";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -36,7 +37,20 @@ interface DashboardData {
 export default function Dashboard() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { startOnboarding, setCurrentStep, hasCompletedOnboarding } = useOnboarding();
   const [activeTab, setActiveTab] = useState("overview");
+  
+  // Start onboarding when dashboard is loaded for first time
+  useEffect(() => {
+    if (!hasCompletedOnboarding) {
+      // Small delay to ensure the dashboard has rendered properly
+      const timer = setTimeout(() => {
+        startOnboarding('dashboard-intro');
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [hasCompletedOnboarding, startOnboarding]);
 
   // Get dashboard data
   const { 
