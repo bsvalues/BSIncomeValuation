@@ -9,7 +9,7 @@ import { dashboardRouter } from "./dashboardRoutes";
 import { valuationRouter } from "./valuationRoutes";
 import { agentRouter } from "./agentRoutes";
 import { devAuthRouter } from "./devAuthRoutes";
-import { asyncHandler, NotFoundError } from "./errorHandler";
+import { asyncHandler, NotFoundError, ValidationError } from "./errorHandler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const router = express.Router();
@@ -41,9 +41,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // User routes
-  router.post("/users", async (req: Request, res: Response) => {
+  router.post("/users", asyncHandler(async (req: Request, res: Response) => {
+    console.log("Request body:", req.body);
     try {
-      console.log("Request body:", req.body);
       const userData = insertUserSchema.parse(req.body);
       console.log("Parsed user data:", userData);
       const user = await storage.createUser(userData);
@@ -53,51 +53,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error creating user:", error);
       if (error instanceof ZodError) {
         const validationError = fromZodError(error);
-        res.status(400).json({ error: validationError.message });
-      } else {
-        res.status(500).json({ error: "Failed to create user" });
+        throw new ValidationError(validationError.message);
       }
+      throw error;
     }
-  });
+  }));
 
-  router.get("/users/:id", async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.params.id);
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to retrieve user" });
+  router.get("/users/:id", asyncHandler(async (req: Request, res: Response) => {
+    const userId = parseInt(req.params.id);
+    const user = await storage.getUser(userId);
+    
+    if (!user) {
+      throw new NotFoundError("User not found");
     }
-  });
+    
+    res.json(user);
+  }));
 
   // Income routes
-  router.get("/users/:userId/incomes", async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      const incomes = await storage.getIncomesByUserId(userId);
-      res.json(incomes);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to retrieve incomes" });
-    }
-  });
+  router.get("/users/:userId/incomes", asyncHandler(async (req: Request, res: Response) => {
+    const userId = parseInt(req.params.userId);
+    const incomes = await storage.getIncomesByUserId(userId);
+    res.json(incomes);
+  }));
 
-  router.get("/incomes/:id", async (req: Request, res: Response) => {
-    try {
-      const incomeId = parseInt(req.params.id);
-      const income = await storage.getIncomeById(incomeId);
-      if (!income) {
-        return res.status(404).json({ error: "Income not found" });
-      }
-      res.json(income);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to retrieve income" });
+  router.get("/incomes/:id", asyncHandler(async (req: Request, res: Response) => {
+    const incomeId = parseInt(req.params.id);
+    const income = await storage.getIncomeById(incomeId);
+    
+    if (!income) {
+      throw new NotFoundError("Income not found");
     }
-  });
+    
+    res.json(income);
+  }));
 
-  router.post("/incomes", async (req: Request, res: Response) => {
+  router.post("/incomes", asyncHandler(async (req: Request, res: Response) => {
     try {
       const incomeData = insertIncomeSchema.parse(req.body);
       const income = await storage.createIncome(incomeData);
@@ -105,12 +96,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       if (error instanceof ZodError) {
         const validationError = fromZodError(error);
-        res.status(400).json({ error: validationError.message });
-      } else {
-        res.status(500).json({ error: "Failed to create income" });
+        throw new ValidationError(validationError.message);
       }
+      throw error;
     }
-  });
+  }));
 
   router.put("/incomes/:id", async (req: Request, res: Response) => {
     try {

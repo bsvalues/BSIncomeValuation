@@ -6,15 +6,24 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 // JWT Secret configuration
-const JWT_SECRET = process.env.JWT_SECRET;
-// In development only, fallback to a fixed value if JWT_SECRET is not set
-if (!JWT_SECRET && process.env.NODE_ENV !== 'production') {
-  console.warn('Warning: JWT_SECRET not set. Using insecure default for development only.');
-}
-// For production, enforce that JWT_SECRET must be set
-if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
-  throw new Error('JWT_SECRET environment variable must be set in production mode');
-}
+// Generate a random secret for development if JWT_SECRET is not set
+import crypto from 'crypto';
+
+// Create a secure JWT_SECRET from environment or generate it for development
+const JWT_SECRET: string = (() => {
+  const envSecret = process.env.JWT_SECRET;
+  if (envSecret) return envSecret;
+  
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable must be set in production mode');
+  }
+  
+  // For development, generate a random secret that persists for the session
+  // This is more secure than a hardcoded value, but still not suitable for production
+  const generatedSecret = crypto.randomBytes(64).toString('hex');
+  console.log('Generated random JWT_SECRET for development. This will change on server restart.');
+  return generatedSecret;
+})();
 
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1h"; // Access token expiry 
 const REFRESH_TOKEN_EXPIRES_IN = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
