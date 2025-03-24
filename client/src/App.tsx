@@ -52,6 +52,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/dev-login" component={DevLogin} />
       {/* Dev docs route - only available in development */}
       <Route path="/docs/dev" component={DevDocs} />
       {/* Protected routes */}
@@ -76,6 +77,9 @@ function Router() {
           const ValuationResultWithParams = () => <ValuationResult id={params.id} />;
           return <PrivateRoute component={ValuationResultWithParams} />;
         }}
+      </Route>
+      <Route path="/dev/token-management">
+        {() => <PrivateRoute component={DevTokenManagement} />}
       </Route>
       <Route component={NotFound} />
     </Switch>

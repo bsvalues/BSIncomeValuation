@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { AlertCircle, KeyRound, LogIn } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { AIDevBadge } from "@/components/AIDevBadge";
 
 export default function DevLogin() {
@@ -14,11 +14,11 @@ export default function DevLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
-  const [, navigate] = useNavigate();
+  const [, setLocation] = useLocation();
 
   // If user is already authenticated, redirect to dashboard
   if (isAuthenticated) {
-    navigate("/dashboard");
+    setLocation("/dashboard");
     return null;
   }
 

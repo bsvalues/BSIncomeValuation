@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,7 +66,7 @@ interface User {
 
 export default function DevTokenManagement() {
   const { user, isAuthenticated } = useAuth();
-  const [, navigate] = useNavigate();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [selectedUser, setSelectedUser] = useState<number | null>(null);
   const [tokenDescription, setTokenDescription] = useState("");
@@ -83,11 +83,11 @@ export default function DevTokenManagement() {
         description: "You do not have permission to access this page.",
         variant: "destructive"
       });
-      navigate("/dashboard");
+      setLocation("/dashboard");
     } else if (!isAuthenticated) {
-      navigate("/login");
+      setLocation("/login");
     }
-  }, [isAuthenticated, user, navigate, toast]);
+  }, [isAuthenticated, user, setLocation, toast]);
 
   // Fetch users
   const { 
