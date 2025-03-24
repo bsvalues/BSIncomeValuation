@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,10 +17,11 @@ export default function DevLogin() {
   const [, setLocation] = useLocation();
 
   // If user is already authenticated, redirect to dashboard
-  if (isAuthenticated) {
-    setLocation("/dashboard");
-    return null;
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      setLocation("/dashboard");
+    }
+  }, [isAuthenticated, setLocation]);
 
   const handleDevLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,8 +53,8 @@ export default function DevLogin() {
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
       
-      // Reload the page to update auth context
-      window.location.href = "/dashboard";
+      // Redirect to dashboard
+      setLocation("/dashboard");
     } catch (err) {
       console.error("Dev login error:", err);
       setError(err instanceof Error ? err.message : "Failed to authenticate");
@@ -127,12 +128,12 @@ export default function DevLogin() {
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <div className="text-sm text-center w-full">
-            <a 
-              href="/login" 
+            <button 
+              onClick={() => setLocation("/login")}
               className="text-primary hover:underline"
             >
               Return to regular login
-            </a>
+            </button>
           </div>
           <div className="text-xs text-muted-foreground text-center">
             For development use only. Not for production.
