@@ -8,11 +8,15 @@ export default function DevDocs() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    // Only allow in development mode
+    // Strict protection: only allow in development mode
     if (process.env.NODE_ENV !== 'development') {
+      console.warn('Attempted to access DevDocs in non-development environment');
       setLocation('/');
       return;
     }
+    
+    // Add a message to the console for debugging
+    console.log('DevDocs component mounted in development mode');
 
     // Fetch the README.md content
     fetch('/README.md')

@@ -49,14 +49,25 @@ function PrivateRoute({ component: Component }: { component: React.ComponentType
 }
 
 function Router() {
+  // Use an environment variable check to determine if we should show dev routes
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
   return (
     <Switch>
+      {/* Main application routes */}
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
-      <Route path="/dev-login" component={DevLogin} />
-      {/* Dev docs route - only available in development */}
-      <Route path="/docs/dev" component={DevDocs} />
+      
+      {/* Dev-specific routes - only register these in development */}
+      {isDevelopment && <Route path="/dev-login" component={DevLogin} />}
+      {isDevelopment && <Route path="/docs/dev" component={DevDocs} />}
+      {isDevelopment && (
+        <Route path="/dev/token-management">
+          {() => <PrivateRoute component={DevTokenManagement} />}
+        </Route>
+      )}
+      
       {/* Protected routes */}
       <Route path="/dashboard">
         {() => <PrivateRoute component={Dashboard} />}
@@ -80,9 +91,8 @@ function Router() {
           return <PrivateRoute component={ValuationResultWithParams} />;
         }}
       </Route>
-      <Route path="/dev/token-management">
-        {() => <PrivateRoute component={DevTokenManagement} />}
-      </Route>
+      
+      {/* 404 page - must be last */}
       <Route component={NotFound} />
     </Switch>
   );
