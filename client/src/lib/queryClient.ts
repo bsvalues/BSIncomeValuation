@@ -28,13 +28,24 @@ export async function apiRequest<T = any>(
     url = methodOrUrl;
     options = urlOrOptions;
   }
+  
+  // Get the access token from localStorage
+  const accessToken = localStorage.getItem('accessToken');
+  
+  // Build headers with authorization
+  const headers: HeadersInit = { 
+    'Content-Type': 'application/json',
+    ...(options?.headers || {})
+  };
+  
+  // Add authorization header if token exists
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
 
   const res = await fetch(url, {
     method,
-    headers: { 
-      'Content-Type': 'application/json',
-      ...(options?.headers || {})
-    },
+    headers,
     credentials: 'include',
     ...options,
   });
@@ -49,8 +60,18 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    // Get the access token from localStorage
+    const accessToken = localStorage.getItem('accessToken');
+    
+    // Prepare headers with Authorization if token exists
+    const headers: HeadersInit = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+    
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      headers
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
