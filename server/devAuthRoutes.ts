@@ -1,9 +1,9 @@
 import { Router, Request, Response } from "express";
-import { createDevAuthTokenSchema, devAuthLoginSchema, users } from "@shared/schema";
+import { createDevAuthTokenSchema, devAuthLoginSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { authenticateJWT, generateTokens, hashPassword } from "./auth";
-import { db } from "./db";
+import { pool } from "./db.config";
 import { 
   createDevAuthToken, 
   validateDevAuthToken, 
@@ -12,7 +12,6 @@ import {
   cleanupExpiredDevTokens,
   devOnlyMiddleware 
 } from "./devAuth";
-import { eq } from "drizzle-orm";
 
 // Create dev auth router
 export const devAuthRouter = Router();
@@ -189,28 +188,30 @@ devAuthRouter.post("/auto-login", async (req: Request, res: Response) => {
     const DEV_USERNAME = "admin";
     const DEV_PASSWORD = "adminpass";
     const DEV_EMAIL = "admin@example.com";
+    const DEV_ROLE = "admin";
     
-    // Check if dev user exists
-    const { users } = db._.schema;
-    let user = await db.query.users.findFirst({
-      where: eq(users.username, DEV_USERNAME)
-    });
+    // Check if dev user exists - using raw SQL for simplicity
+    const userQuery = await pool.query(
+      "SELECT * FROM users WHERE username = $1 LIMIT 1", 
+      [DEV_USERNAME]
+    );
+    
+    let user;
     
     // Create dev user if it doesn't exist
-    if (!user) {
+    if (userQuery.rows.length === 0) {
       const hashedPassword = await hashPassword(DEV_PASSWORD);
       
-      const [newUser] = await db.insert(users).values({
-        username: DEV_USERNAME,
-        password: hashedPassword,
-        email: DEV_EMAIL,
-        role: "admin",
-        fullName: "Development Admin",
-      }).returning();
+      // Insert using raw SQL
+      const newUserQuery = await pool.query(
+        "INSERT INTO users (username, password, email, role, full_name) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+        [DEV_USERNAME, hashedPassword, DEV_EMAIL, DEV_ROLE, "Development Admin"]
+      );
       
-      user = newUser;
+      user = newUserQuery.rows[0];
       console.log("Created development admin user:", user.id);
     } else {
+      user = userQuery.rows[0];
       console.log("Using existing development admin user:", user.id);
     }
     
