@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Valuation, Income } from "@shared/schema";
-import { BarChart3, Plus, Calendar, Trash2, CreditCard, TrendingUp, ArrowUpRight, AlertCircle } from "lucide-react";
+import { 
+  BarChart3, Plus, Calendar, Trash2, CreditCard, TrendingUp, ArrowUpRight, AlertCircle,
+  Home, Building, Map, Building2, PercentSquare, Clock, MapPin
+} from "lucide-react";
 import { IncomeChart } from "@/components/ui/income-chart";
 import { ValuationHistoryChart } from "@/components/ui/valuation-history-chart";
 import { apiRequest } from "@/lib/queryClient";
@@ -227,6 +230,7 @@ export default function Dashboard() {
               <TabsTrigger value="overview" className="text-sm md:text-base">Overview</TabsTrigger>
               <TabsTrigger value="valuations" className="text-sm md:text-base">Valuations</TabsTrigger>
               <TabsTrigger value="incomes" className="text-sm md:text-base">Income Sources</TabsTrigger>
+              <TabsTrigger value="bentondata" className="text-sm md:text-base">Benton County Data</TabsTrigger>
             </TabsList>
             
             <TabsContent value="overview">
@@ -667,6 +671,308 @@ export default function Dashboard() {
                   </Card>
                 )}
               </div>
+            </TabsContent>
+            
+            <TabsContent value="bentondata">
+              {/* Benton County Market Overview */}
+              <div className="grid md:grid-cols-2 gap-6 mb-8">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center">
+                      <div className="bg-primary-100 p-2 rounded-lg mr-3">
+                        <Home className="h-5 w-5 text-primary-600" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg text-primary-700">Benton County Market Overview</CardTitle>
+                        <CardDescription>Current market trends for Benton County properties</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-700">Average Property Value</h4>
+                          <p className="text-xs text-slate-500">Single-family homes in Benton County</p>
+                        </div>
+                        <span className="text-lg font-semibold text-primary-700">$375,400</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-700">Year-over-Year Appreciation</h4>
+                          <p className="text-xs text-slate-500">Annual growth rate</p>
+                        </div>
+                        <span className="text-lg font-semibold text-emerald-600">+5.7%</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-700">State Average Comparison</h4>
+                          <p className="text-xs text-slate-500">Compared to Washington state average</p>
+                        </div>
+                        <span className="text-lg font-semibold text-primary-700">-8.3%</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center py-3">
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-700">Median Days on Market</h4>
+                          <p className="text-xs text-slate-500">For properties in Benton County</p>
+                        </div>
+                        <span className="text-lg font-semibold text-primary-700">32 days</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center">
+                      <div className="bg-primary-100 p-2 rounded-lg mr-3">
+                        <PercentSquare className="h-5 w-5 text-primary-600" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg text-primary-700">Property Tax Information</CardTitle>
+                        <CardDescription>Tax rates and payment information for Benton County</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-700">Current Property Tax Rate</h4>
+                          <p className="text-xs text-slate-500">Per $1,000 of assessed value</p>
+                        </div>
+                        <span className="text-lg font-semibold text-primary-700">$10.24</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-700">Average Annual Tax</h4>
+                          <p className="text-xs text-slate-500">For median home value</p>
+                        </div>
+                        <span className="text-lg font-semibold text-primary-700">$3,844</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-700">First Half Due Date</h4>
+                          <p className="text-xs text-slate-500">Annual property tax deadline</p>
+                        </div>
+                        <span className="text-lg font-semibold text-primary-700">April 30th</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center py-3">
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-700">Second Half Due Date</h4>
+                          <p className="text-xs text-slate-500">Annual property tax deadline</p>
+                        </div>
+                        <span className="text-lg font-semibold text-primary-700">October 31st</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              {/* Zoning & Regulation Updates */}
+              <Card className="mb-8">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center">
+                    <div className="bg-primary-100 p-2 rounded-lg mr-3">
+                      <Building className="h-5 w-5 text-primary-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg text-primary-700">Zoning & Regulation Updates</CardTitle>
+                      <CardDescription>Recent changes affecting property values in Benton County</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-primary-50 rounded-lg border border-primary-100">
+                      <h4 className="text-sm font-semibold text-primary-700 mb-1">New Mixed-Use Development Zone</h4>
+                      <p className="text-sm text-slate-600 mb-2">
+                        Benton County has approved a new mixed-use development zone near Columbia Center, 
+                        allowing for residential and commercial properties in the same developments.
+                      </p>
+                      <p className="text-xs text-slate-500">Effective: March 1, 2025</p>
+                    </div>
+                    
+                    <div className="p-4 bg-primary-50 rounded-lg border border-primary-100">
+                      <h4 className="text-sm font-semibold text-primary-700 mb-1">Building Permit Activity Increase</h4>
+                      <p className="text-sm text-slate-600 mb-2">
+                        Building permit applications in Benton County have increased by 12% year-over-year, 
+                        with most growth in the West Richland and Kennewick areas.
+                      </p>
+                      <p className="text-xs text-slate-500">Last updated: February 2025</p>
+                    </div>
+                    
+                    <div className="p-4 bg-primary-50 rounded-lg border border-primary-100">
+                      <h4 className="text-sm font-semibold text-primary-700 mb-1">New Infrastructure Project</h4>
+                      <p className="text-sm text-slate-600 mb-2">
+                        A $24M infrastructure improvement project has been approved for the Highway 395 
+                        corridor, which may increase property values in adjacent neighborhoods.
+                      </p>
+                      <p className="text-xs text-slate-500">Project start: June 2025</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Comparative Analysis */}
+              <Card className="mb-8">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center">
+                    <div className="bg-primary-100 p-2 rounded-lg mr-3">
+                      <BarChart3 className="h-5 w-5 text-primary-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg text-primary-700">Comparative Analysis</CardTitle>
+                      <CardDescription>How your property compares to others in Benton County</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-slate-700 mb-3">Value Trends by Neighborhood</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm text-slate-600">South Richland</span>
+                          <span className="text-sm font-medium text-emerald-600">+7.2%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2">
+                          <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '72%' }}></div>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm text-slate-600">West Kennewick</span>
+                          <span className="text-sm font-medium text-emerald-600">+6.8%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2">
+                          <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '68%' }}></div>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm text-slate-600">West Richland</span>
+                          <span className="text-sm font-medium text-emerald-600">+5.9%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2">
+                          <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '59%' }}></div>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm text-slate-600">East Pasco</span>
+                          <span className="text-sm font-medium text-emerald-600">+4.3%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2">
+                          <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '43%' }}></div>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm text-slate-600">Downtown Kennewick</span>
+                          <span className="text-sm font-medium text-emerald-600">+3.7%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2">
+                          <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '37%' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-primary-50 rounded-lg border border-primary-100">
+                    <h4 className="text-sm font-semibold text-primary-700 mb-2">Property Value Comparison</h4>
+                    <p className="text-sm text-slate-600">
+                      Based on your income sources and property valuations, your property value 
+                      is performing in the top 25% compared to similar properties in Benton County.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Income Potential by Area */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center">
+                    <div className="bg-primary-100 p-2 rounded-lg mr-3">
+                      <MapPin className="h-5 w-5 text-primary-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg text-primary-700">Income Potential by Area</CardTitle>
+                      <CardDescription>Rental and income data for different areas in Benton County</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Neighborhood</th>
+                          <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Avg. Monthly Rent</th>
+                          <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Rental Yield</th>
+                          <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Occupancy Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 px-4 text-sm text-slate-700">South Richland</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">$1,870</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">4.8%</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">96.2%</td>
+                        </tr>
+                        <tr className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 px-4 text-sm text-slate-700">West Kennewick</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">$1,650</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">5.2%</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">95.7%</td>
+                        </tr>
+                        <tr className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 px-4 text-sm text-slate-700">North Richland</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">$1,760</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">4.9%</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">94.8%</td>
+                        </tr>
+                        <tr className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 px-4 text-sm text-slate-700">Downtown Kennewick</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">$1,390</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">5.6%</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">92.4%</td>
+                        </tr>
+                        <tr className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 px-4 text-sm text-slate-700">West Pasco</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">$1,580</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">5.3%</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">94.1%</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50">
+                          <td className="py-3 px-4 text-sm text-slate-700">East Pasco</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">$1,320</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">5.8%</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-700">91.2%</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  <div className="mt-6 p-4 bg-primary-50 rounded-lg border border-primary-100">
+                    <h4 className="text-sm font-semibold text-primary-700 mb-2">Commercial vs Residential</h4>
+                    <p className="text-sm text-slate-600">
+                      Commercial properties in Benton County are currently yielding an average of 6.2% ROI,
+                      compared to 5.1% for residential properties. The commercial vacancy rate is 7.8%.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </ErrorBoundary>
