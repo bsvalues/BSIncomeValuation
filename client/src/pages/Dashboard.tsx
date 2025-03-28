@@ -201,8 +201,8 @@ export default function Dashboard() {
         <ErrorBoundary>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-primary-800">Your Dashboard</h1>
-              <p className="text-slate-600 mt-1">Manage your income sources and valuations</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-primary-800">Benton County Valuation Dashboard</h1>
+              <p className="text-slate-600 mt-1">Manage your Benton County, WA property income sources and valuations</p>
             </div>
             
             <div className="flex gap-4 mt-4 md:mt-0">
@@ -315,8 +315,8 @@ export default function Dashboard() {
               <div className="grid md:grid-cols-2 gap-6 mb-8">
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg text-primary-700">Income Sources</CardTitle>
-                    <CardDescription>Breakdown by income type</CardDescription>
+                    <CardTitle className="text-lg text-primary-700">Benton County Income Sources</CardTitle>
+                    <CardDescription>Breakdown by property income type in Benton County</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-4">
                     {dashboardLoading ? (
@@ -367,8 +367,8 @@ export default function Dashboard() {
                 
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg text-primary-700">Recent Valuations</CardTitle>
-                    <CardDescription>Your latest valuation results</CardDescription>
+                    <CardTitle className="text-lg text-primary-700">Recent Benton County Valuations</CardTitle>
+                    <CardDescription>Your latest Benton County property valuation results</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-4">
                     {dashboardLoading ? (
@@ -462,8 +462,8 @@ export default function Dashboard() {
               {/* Historical Valuation Chart */}
               <Card className="mb-6">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg text-primary-700">Valuation History</CardTitle>
-                  <CardDescription>Track your valuation progress over time</CardDescription>
+                  <CardTitle className="text-lg text-primary-700">Benton County Valuation History</CardTitle>
+                  <CardDescription>Track your Benton County property valuation progress over time</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-2">
                   {valuationsLoading ? (
@@ -509,7 +509,7 @@ export default function Dashboard() {
                         <div className="flex justify-between items-start">
                           <div>
                             <CardTitle className="text-lg text-primary-700">
-                              Income Valuation
+                              Benton County Income Valuation
                             </CardTitle>
                             <CardDescription className="flex items-center gap-2">
                               <Calendar className="h-3 w-3" />
@@ -574,8 +574,8 @@ export default function Dashboard() {
               {/* Income sources breakdown chart */}
               <Card className="mb-6">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg text-primary-700">Income Breakdown</CardTitle>
-                  <CardDescription>Distribution of your income sources by type</CardDescription>
+                  <CardTitle className="text-lg text-primary-700">Benton County Income Breakdown</CardTitle>
+                  <CardDescription>Distribution of your Benton County property income sources by type</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-2">
                   {incomesLoading ? (
