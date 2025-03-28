@@ -12,11 +12,13 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, BarChart4, Calculator, ChevronsUpDown, DollarSign, FileText, Home, LayoutDashboard, PieChart, TrendingUp } from 'lucide-react';
+import { AlertCircle, BarChart4, Calculator, ChartBar, ChevronsUpDown, DollarSign, FileText, FileUp, Home, LayoutDashboard, PieChart, TrendingUp } from 'lucide-react';
 import { queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { cn, formatCurrency, formatPercentage } from '../lib/utils';
+import VisualizationDashboard from '../components/pro-forma/VisualizationDashboard';
+import ProFormaWorksheet from '../components/pro-forma/ProFormaWorksheet';
 
 // Define schema for the Pro Forma Calculator form
 const proFormaSchema = z.object({

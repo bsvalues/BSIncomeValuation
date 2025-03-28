@@ -11,13 +11,26 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Formats a number as currency (USD)
  * @param value The number to format
- * @param minimumFractionDigits Number of decimal places (default: 0)
+ * @param options Either number of decimal places (default: 0) or a boolean to use compact notation
  * @returns Formatted currency string
  */
 export function formatCurrency(
   value: number,
-  minimumFractionDigits: number = 0
+  options: number | boolean = 0
 ): string {
+  const minimumFractionDigits = typeof options === 'number' ? options : 0;
+  const compact = typeof options === 'boolean' ? options : false;
+  
+  if (compact) {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      notation: "compact",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1,
+    }).format(value);
+  }
+  
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
