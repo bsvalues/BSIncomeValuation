@@ -83,6 +83,11 @@ export default function Navbar() {
                     Calculator
                   </div>
                 </Link>
+                <Link href="/pro-forma">
+                  <div className={`text-sm font-medium ${isActive('/pro-forma') ? 'text-white font-bold' : 'text-blue-100 hover:text-white'} transition cursor-pointer`}>
+                    Pro Forma
+                  </div>
+                </Link>
                 <Link href="/ai-agents">
                   <div className={`text-sm font-medium ${isActive('/ai-agents') ? 'text-white font-bold' : 'text-blue-100 hover:text-white'} transition cursor-pointer`}>
                     AI Insights
@@ -188,6 +193,14 @@ export default function Navbar() {
                       onClick={closeMenu}
                     >
                       Calculator
+                    </div>
+                  </Link>
+                  <Link href="/pro-forma">
+                    <div 
+                      className={`px-2 py-1 rounded ${isActive('/pro-forma') ? 'bg-blue-700 text-white font-bold' : 'text-blue-100 hover:text-white'} cursor-pointer`}
+                      onClick={closeMenu}
+                    >
+                      Pro Forma Calculator
                     </div>
                   </Link>
                   <Link href="/ai-agents">

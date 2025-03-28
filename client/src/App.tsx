@@ -10,6 +10,7 @@ import Register from "@/pages/Register";
 import ValuationForm from "@/pages/ValuationForm";
 import ValuationResult from "@/pages/ValuationResult";
 import Calculator from "@/pages/Calculator";
+import ProFormaCalculator from "@/pages/ProFormaCalculator";
 import DevDocs from "@/pages/DevDocs";
 import DevLogin from "@/pages/DevLogin";
 import DevTokenManagement from "@/pages/DevTokenManagement";
@@ -74,6 +75,9 @@ function Router() {
       </Route>
       <Route path="/calculator">
         {() => <PrivateRoute component={Calculator} />}
+      </Route>
+      <Route path="/pro-forma">
+        {() => <PrivateRoute component={ProFormaCalculator} />}
       </Route>
       <Route path="/ai-agents">
         {() => <PrivateRoute component={AgentDashboard} />}
