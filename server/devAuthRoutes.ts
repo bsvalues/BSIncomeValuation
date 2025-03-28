@@ -1,8 +1,9 @@
 import { Router, Request, Response } from "express";
-import { createDevAuthTokenSchema, devAuthLoginSchema } from "@shared/schema";
+import { createDevAuthTokenSchema, devAuthLoginSchema, users } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { authenticateJWT } from "./auth";
+import { authenticateJWT, generateTokens, hashPassword } from "./auth";
+import { db } from "./db";
 import { 
   createDevAuthToken, 
   validateDevAuthToken, 
@@ -11,6 +12,7 @@ import {
   cleanupExpiredDevTokens,
   devOnlyMiddleware 
 } from "./devAuth";
+import { eq } from "drizzle-orm";
 
 // Create dev auth router
 export const devAuthRouter = Router();
@@ -180,6 +182,65 @@ devAuthRouter.delete(
     }
   }
 );
+
+// Auto-login route (DEV ONLY - creates or finds a development admin user)
+devAuthRouter.post("/auto-login", async (req: Request, res: Response) => {
+  try {
+    const DEV_USERNAME = "admin";
+    const DEV_PASSWORD = "adminpass";
+    const DEV_EMAIL = "admin@example.com";
+    
+    // Check if dev user exists
+    const { users } = db._.schema;
+    let user = await db.query.users.findFirst({
+      where: eq(users.username, DEV_USERNAME)
+    });
+    
+    // Create dev user if it doesn't exist
+    if (!user) {
+      const hashedPassword = await hashPassword(DEV_PASSWORD);
+      
+      const [newUser] = await db.insert(users).values({
+        username: DEV_USERNAME,
+        password: hashedPassword,
+        email: DEV_EMAIL,
+        role: "admin",
+        fullName: "Development Admin",
+      }).returning();
+      
+      user = newUser;
+      console.log("Created development admin user:", user.id);
+    } else {
+      console.log("Using existing development admin user:", user.id);
+    }
+    
+    // Generate tokens for the user
+    const tokens = generateTokens({
+      userId: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role
+    });
+    
+    // Return user data and tokens
+    res.json({
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role
+      },
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      message: "Development auto-login successful"
+    });
+  } catch (error) {
+    console.error("Error in dev auto-login:", error);
+    res.status(500).json({ 
+      error: error instanceof Error ? error.message : "Auto-login failed" 
+    });
+  }
+});
 
 // Cleanup expired tokens (admin only)
 devAuthRouter.post(

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, User, X } from "lucide-react";
+import { LogOut, Menu, User, X, KeyRound } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
@@ -60,6 +60,14 @@ export default function Navbar() {
             <Link href="/">
               <div className={`text-sm font-medium ${isActive('/') ? 'text-white font-bold' : 'text-blue-100 hover:text-white'} transition cursor-pointer`}>
                 Home
+              </div>
+            </Link>
+            
+            {/* Dev Login Link - only visible in development */}
+            <Link href="/dev-login">
+              <div className={`text-sm font-medium ${isActive('/dev-login') ? 'text-white font-bold' : 'text-blue-100 hover:text-white'} transition cursor-pointer flex items-center`}>
+                <KeyRound className="mr-1 h-3 w-3" />
+                <span>Dev</span>
               </div>
             </Link>
             
@@ -150,6 +158,17 @@ export default function Navbar() {
                   onClick={closeMenu}
                 >
                   Home
+                </div>
+              </Link>
+              
+              {/* Dev Login Link - only visible in development */}
+              <Link href="/dev-login">
+                <div 
+                  className={`px-2 py-1 rounded ${isActive('/dev-login') ? 'bg-blue-700 text-white font-bold' : 'text-blue-100 hover:text-white'} cursor-pointer flex items-center`}
+                  onClick={closeMenu}
+                >
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Developer Login
                 </div>
               </Link>
               
