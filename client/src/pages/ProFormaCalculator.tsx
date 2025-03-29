@@ -12,7 +12,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, BarChart4, Calculator, ChartBar, ChevronsUpDown, DollarSign, FileText, FileUp, Home, LayoutDashboard, PieChart, TrendingUp } from 'lucide-react';
+import { AlertCircle, BarChart4, Calculator, ChartBar, ChevronsUpDown, DollarSign, Download, FileText, FileUp, Home, LayoutDashboard, PieChart, TrendingUp } from 'lucide-react';
 import { queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -140,6 +140,9 @@ export default function ProFormaCalculator() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
   const [scenarios, setScenarios] = useState<Array<{ name: string, data: ProFormaFormValues, analysis: AIAnalysis | null }>>([]);
+  // State for visualization and worksheet features
+  const [showVisualization, setShowVisualization] = useState(false);
+  const [showWorksheet, setShowWorksheet] = useState(false);
   
   // Initialize form with react-hook-form
   const form = useForm<ProFormaFormValues>({
@@ -409,6 +412,14 @@ export default function ProFormaCalculator() {
               <TabsTrigger value="analysis" className="flex items-center gap-2" disabled={!analysis}>
                 <BarChart4 className="h-4 w-4" />
                 <span>Analysis</span>
+              </TabsTrigger>
+              <TabsTrigger value="visualization" className="flex items-center gap-2" disabled={!analysis}>
+                <ChartBar className="h-4 w-4" />
+                <span>Visualizations</span>
+              </TabsTrigger>
+              <TabsTrigger value="worksheet" className="flex items-center gap-2" disabled={!analysis}>
+                <FileText className="h-4 w-4" />
+                <span>Worksheet</span>
               </TabsTrigger>
               <TabsTrigger value="scenarios" className="flex items-center gap-2" disabled={scenarios.length === 0}>
                 <LayoutDashboard className="h-4 w-4" />
@@ -1222,6 +1233,225 @@ export default function ProFormaCalculator() {
                       Save this Scenario
                     </Button>
                   </div>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="visualization">
+              {analysis && (
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <PieChart className="h-5 w-5 text-primary-500" />
+                        Property Valuation Visualizations
+                      </CardTitle>
+                      <CardDescription>
+                        Interactive charts and visualizations for your property analysis
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Wrap the VisualizationDashboard with error boundary in case of rendering issues */}
+                      <ErrorBoundary>
+                        <div className="border rounded-lg p-4">
+                          <div className="mb-4">
+                            <h3 className="text-lg font-semibold">Visualization Dashboard</h3>
+                            <p className="text-sm text-muted-foreground">Interactive data visualizations for Benton County property</p>
+                          </div>
+
+                          {/* Pass the analysis data to the visualization component */}
+                          <VisualizationDashboard 
+                            formData={form.getValues()}
+                            calculatedMetrics={{
+                              effectiveGrossIncome: (form.getValues().incomeProjections.rentalUnit === 'monthly' 
+                                ? form.getValues().incomeProjections.rentalIncome * 12 
+                                : form.getValues().incomeProjections.rentalIncome) * 
+                                (1 - form.getValues().incomeProjections.vacancyRate / 100) + 
+                                form.getValues().incomeProjections.otherIncome,
+                              operatingExpenses: form.getValues().expenseProjections.propertyTaxes +
+                                form.getValues().expenseProjections.insurance +
+                                form.getValues().expenseProjections.utilities +
+                                form.getValues().expenseProjections.maintenance +
+                                form.getValues().expenseProjections.managementFees +
+                                form.getValues().expenseProjections.replacementReserves +
+                                form.getValues().expenseProjections.otherExpenses,
+                              netOperatingIncome: ((form.getValues().incomeProjections.rentalUnit === 'monthly' 
+                                ? form.getValues().incomeProjections.rentalIncome * 12 
+                                : form.getValues().incomeProjections.rentalIncome) * 
+                                (1 - form.getValues().incomeProjections.vacancyRate / 100) + 
+                                form.getValues().incomeProjections.otherIncome) - 
+                              (form.getValues().expenseProjections.propertyTaxes +
+                              form.getValues().expenseProjections.insurance +
+                              form.getValues().expenseProjections.utilities +
+                              form.getValues().expenseProjections.maintenance +
+                              form.getValues().expenseProjections.managementFees +
+                              form.getValues().expenseProjections.replacementReserves +
+                              form.getValues().expenseProjections.otherExpenses),
+                              annualDebtService: form.getValues().financing.monthlyPayment * 12,
+                              cashFlow: ((form.getValues().incomeProjections.rentalUnit === 'monthly' 
+                                ? form.getValues().incomeProjections.rentalIncome * 12 
+                                : form.getValues().incomeProjections.rentalIncome) * 
+                                (1 - form.getValues().incomeProjections.vacancyRate / 100) + 
+                                form.getValues().incomeProjections.otherIncome) - 
+                              (form.getValues().expenseProjections.propertyTaxes +
+                              form.getValues().expenseProjections.insurance +
+                              form.getValues().expenseProjections.utilities +
+                              form.getValues().expenseProjections.maintenance +
+                              form.getValues().expenseProjections.managementFees +
+                              form.getValues().expenseProjections.replacementReserves +
+                              form.getValues().expenseProjections.otherExpenses) -
+                              (form.getValues().financing.monthlyPayment * 12),
+                              capRate: analysis.capRate,
+                              cashOnCash: analysis.cashOnCash,
+                              roi: analysis.roi,
+                              vacancyLoss: (form.getValues().incomeProjections.rentalUnit === 'monthly' 
+                                ? form.getValues().incomeProjections.rentalIncome * 12 
+                                : form.getValues().incomeProjections.rentalIncome) * 
+                                (form.getValues().incomeProjections.vacancyRate / 100),
+                              operatingExpenseRatio: ((form.getValues().expenseProjections.propertyTaxes +
+                                form.getValues().expenseProjections.insurance +
+                                form.getValues().expenseProjections.utilities +
+                                form.getValues().expenseProjections.maintenance +
+                                form.getValues().expenseProjections.managementFees +
+                                form.getValues().expenseProjections.replacementReserves +
+                                form.getValues().expenseProjections.otherExpenses) /
+                                ((form.getValues().incomeProjections.rentalUnit === 'monthly' 
+                                ? form.getValues().incomeProjections.rentalIncome * 12 
+                                : form.getValues().incomeProjections.rentalIncome) * 
+                                (1 - form.getValues().incomeProjections.vacancyRate / 100) + 
+                                form.getValues().incomeProjections.otherIncome)) * 100,
+                              dscr: ((form.getValues().incomeProjections.rentalUnit === 'monthly' 
+                                ? form.getValues().incomeProjections.rentalIncome * 12 
+                                : form.getValues().incomeProjections.rentalIncome) * 
+                                (1 - form.getValues().incomeProjections.vacancyRate / 100) + 
+                                form.getValues().incomeProjections.otherIncome) /
+                                (form.getValues().financing.monthlyPayment * 12),
+                              totalReturnFiveYears: analysis.roi * 5,
+                              totalReturnTenYears: analysis.roi * 10
+                            }}
+                            applyAssumptions={() => {}}
+                          />
+                        </div>
+                      </ErrorBoundary>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="worksheet">
+              {analysis && (
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-primary-500" />
+                        Pro Forma Worksheet
+                      </CardTitle>
+                      <CardDescription>
+                        Comprehensive financial worksheet with exportable data
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ErrorBoundary>
+                        <div className="border rounded-lg p-4">
+                          <div className="mb-4 flex justify-between items-center">
+                            <div>
+                              <h3 className="text-lg font-semibold">Valuation Worksheet</h3>
+                              <p className="text-sm text-muted-foreground">Download or print your property analysis</p>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              className="flex items-center gap-2"
+                              onClick={() => {
+                                // The ProFormaWorksheet component handles the PDF export internally
+                                toast({
+                                  title: "Exporting PDF",
+                                  description: "Your Valuation Worksheet is being generated as a PDF.",
+                                });
+                              }}
+                            >
+                              <Download className="h-4 w-4" />
+                              <span>Export PDF</span>
+                            </Button>
+                          </div>
+                          
+                          <ProFormaWorksheet 
+                            formData={form.getValues()}
+                            calculatedMetrics={{
+                              effectiveGrossIncome: (form.getValues().incomeProjections.rentalUnit === 'monthly' 
+                                ? form.getValues().incomeProjections.rentalIncome * 12 
+                                : form.getValues().incomeProjections.rentalIncome) * 
+                                (1 - form.getValues().incomeProjections.vacancyRate / 100) + 
+                                form.getValues().incomeProjections.otherIncome,
+                              operatingExpenses: form.getValues().expenseProjections.propertyTaxes +
+                                form.getValues().expenseProjections.insurance +
+                                form.getValues().expenseProjections.utilities +
+                                form.getValues().expenseProjections.maintenance +
+                                form.getValues().expenseProjections.managementFees +
+                                form.getValues().expenseProjections.replacementReserves +
+                                form.getValues().expenseProjections.otherExpenses,
+                              netOperatingIncome: ((form.getValues().incomeProjections.rentalUnit === 'monthly' 
+                                ? form.getValues().incomeProjections.rentalIncome * 12 
+                                : form.getValues().incomeProjections.rentalIncome) * 
+                                (1 - form.getValues().incomeProjections.vacancyRate / 100) + 
+                                form.getValues().incomeProjections.otherIncome) - 
+                              (form.getValues().expenseProjections.propertyTaxes +
+                              form.getValues().expenseProjections.insurance +
+                              form.getValues().expenseProjections.utilities +
+                              form.getValues().expenseProjections.maintenance +
+                              form.getValues().expenseProjections.managementFees +
+                              form.getValues().expenseProjections.replacementReserves +
+                              form.getValues().expenseProjections.otherExpenses),
+                              annualDebtService: form.getValues().financing.monthlyPayment * 12,
+                              cashFlow: ((form.getValues().incomeProjections.rentalUnit === 'monthly' 
+                                ? form.getValues().incomeProjections.rentalIncome * 12 
+                                : form.getValues().incomeProjections.rentalIncome) * 
+                                (1 - form.getValues().incomeProjections.vacancyRate / 100) + 
+                                form.getValues().incomeProjections.otherIncome) - 
+                              (form.getValues().expenseProjections.propertyTaxes +
+                              form.getValues().expenseProjections.insurance +
+                              form.getValues().expenseProjections.utilities +
+                              form.getValues().expenseProjections.maintenance +
+                              form.getValues().expenseProjections.managementFees +
+                              form.getValues().expenseProjections.replacementReserves +
+                              form.getValues().expenseProjections.otherExpenses) -
+                              (form.getValues().financing.monthlyPayment * 12),
+                              capRate: analysis.capRate,
+                              cashOnCash: analysis.cashOnCash,
+                              roi: analysis.roi,
+                              vacancyLoss: (form.getValues().incomeProjections.rentalUnit === 'monthly' 
+                                ? form.getValues().incomeProjections.rentalIncome * 12 
+                                : form.getValues().incomeProjections.rentalIncome) * 
+                                (form.getValues().incomeProjections.vacancyRate / 100),
+                              operatingExpenseRatio: ((form.getValues().expenseProjections.propertyTaxes +
+                                form.getValues().expenseProjections.insurance +
+                                form.getValues().expenseProjections.utilities +
+                                form.getValues().expenseProjections.maintenance +
+                                form.getValues().expenseProjections.managementFees +
+                                form.getValues().expenseProjections.replacementReserves +
+                                form.getValues().expenseProjections.otherExpenses) /
+                                ((form.getValues().incomeProjections.rentalUnit === 'monthly' 
+                                ? form.getValues().incomeProjections.rentalIncome * 12 
+                                : form.getValues().incomeProjections.rentalIncome) * 
+                                (1 - form.getValues().incomeProjections.vacancyRate / 100) + 
+                                form.getValues().incomeProjections.otherIncome)) * 100,
+                              dscr: ((form.getValues().incomeProjections.rentalUnit === 'monthly' 
+                                ? form.getValues().incomeProjections.rentalIncome * 12 
+                                : form.getValues().incomeProjections.rentalIncome) * 
+                                (1 - form.getValues().incomeProjections.vacancyRate / 100) + 
+                                form.getValues().incomeProjections.otherIncome) /
+                                (form.getValues().financing.monthlyPayment * 12),
+                              totalReturnFiveYears: analysis.roi * 5,
+                              totalReturnTenYears: analysis.roi * 10
+                            }}
+                            appreciationRate={3.0}
+                            rentGrowthRate={2.5}
+                          />
+                        </div>
+                      </ErrorBoundary>
+                    </CardContent>
+                  </Card>
                 </div>
               )}
             </TabsContent>
