@@ -1,14 +1,14 @@
 import { Income } from '../shared/schema';
-import { DataQualityAnalysis } from '../client/src/types/agent-types';
 
 /**
  * Data issue representation for income analysis
  */
 interface DataIssue {
   type: string;
-  message: string;
-  affectedIds?: number[];
-  affectedGroups?: Income[][];
+  description: string;
+  severity: 'high' | 'medium' | 'low';
+  affectedRecords: number;
+  suggestions: string[];
 }
 
 /**
@@ -16,11 +16,34 @@ interface DataIssue {
  */
 interface SuggestedFix {
   type: string;
-  message: string;
+  description: string;
+  automaticFix: boolean;
+  affectedRecords: number[];
+}
+
+/**
+ * Duplicate group representation
+ */
+interface DuplicateGroup {
+  records: Income[];
+  similarity: number;
+  reason: string;
+}
+
+/**
+ * Data quality analysis result
+ */
+interface DataQualityAnalysis {
+  qualityScore: number;
+  totalRecords: number;
+  issues: DataIssue[];
+  suggestedFixes: SuggestedFix[];
+  potentialDuplicates: DuplicateGroup[];
 }
 
 /**
  * DataCleanerAgent - AI-powered agent for detecting and fixing anomalies in income data
+ * Focuses on identifying data quality issues in Benton County property valuation data
  */
 export class DataCleanerAgent {
   /**
@@ -29,174 +52,238 @@ export class DataCleanerAgent {
    * @returns Object containing analysis results, issues found, and suggested fixes
    */
   async analyzeIncomeData(incomeData: Income[]): Promise<DataQualityAnalysis> {
-    // This is a placeholder for future AI implementation
-    // In a real implementation, this would:
-    // 1. Call an LLM API with the income data
-    // 2. Use specific prompts to identify data quality issues
-    // 3. Return structured results with suggestions
-
-    // Basic input validation
-    if (!Array.isArray(incomeData)) {
-      throw new Error('Income data must be an array');
+    if (!incomeData) {
+      throw new Error('No income data provided');
     }
+
+    const totalRecords = incomeData.length;
+    const issues: DataIssue[] = [];
+    const suggestedFixes: SuggestedFix[] = [];
     
-    if (incomeData.length === 0) {
+    // If no data, return empty analysis
+    if (totalRecords === 0) {
       return {
         qualityScore: 100,
         totalRecords: 0,
         issues: [],
+        suggestedFixes: [],
         potentialDuplicates: []
       };
     }
+
+    // Check for missing data
+    const missingDescriptions = incomeData.filter(income => 
+      !income.description || income.description.trim() === '');
     
-    // Using interfaces defined at module level
-    const issues: DataIssue[] = [];
-    const suggestedFixes: SuggestedFix[] = [];
-    
-    // Check for missing descriptions
-    const missingDescriptions = incomeData.filter(income => !income.description || income.description.trim() === '');
     if (missingDescriptions.length > 0) {
       issues.push({
         type: 'missing_data',
-        message: `${missingDescriptions.length} income entries are missing descriptions`,
-        affectedIds: missingDescriptions.map(i => i.id)
+        description: `${missingDescriptions.length} records have missing descriptions`,
+        severity: missingDescriptions.length > totalRecords / 2 ? 'high' : 'medium',
+        affectedRecords: missingDescriptions.length,
+        suggestions: [
+          'Add descriptive details to income records',
+          'Include information about income sources and timing',
+          'Specify location details for Benton County properties'
+        ]
       });
       
       suggestedFixes.push({
         type: 'add_descriptions',
-        message: 'Add detailed descriptions to income sources for better categorization'
+        description: 'Add default descriptions based on income source types',
+        automaticFix: false,
+        affectedRecords: missingDescriptions.map(income => income.id)
       });
     }
     
-    // Check for unusual amounts (outliers)
-    const amounts = incomeData.map(i => parseFloat(i.amount));
-    const avgAmount = amounts.reduce((sum, amount) => sum + amount, 0) / amounts.length;
-    const stdDev = Math.sqrt(
-      amounts.reduce((sum, amount) => sum + Math.pow(amount - avgAmount, 2), 0) / amounts.length
-    );
+    // Check for unreasonable values (negative amounts, etc.)
+    const negativeAmounts = incomeData.filter(income => 
+      parseFloat(income.amount) < 0);
     
-    const outliers = incomeData.filter(income => 
-      Math.abs(parseFloat(income.amount) - avgAmount) > stdDev * 2 // More than 2 standard deviations
-    );
-    
-    if (outliers.length > 0) {
+    if (negativeAmounts.length > 0) {
       issues.push({
-        type: 'outlier_amounts',
-        message: `${outliers.length} income entries have unusually high or low amounts`,
-        affectedIds: outliers.map(i => i.id)
+        type: 'invalid_values',
+        description: `${negativeAmounts.length} records have negative amounts`,
+        severity: 'high',
+        affectedRecords: negativeAmounts.length,
+        suggestions: [
+          'Convert negative income to positive values',
+          'Use expense categories instead of negative income',
+          'Verify if these represent actual losses'
+        ]
       });
       
       suggestedFixes.push({
-        type: 'verify_outliers',
-        message: 'Verify the outlier amounts are correct and update if needed'
+        type: 'fix_negative_amounts',
+        description: 'Convert negative amounts to positive values',
+        automaticFix: true,
+        affectedRecords: negativeAmounts.map(income => income.id)
       });
     }
     
-    // Check for duplicate entries
-    const duplicateGroups = this.findPotentialDuplicates(incomeData);
-    if (duplicateGroups.length > 0) {
+    // Find potential duplicate entries
+    const potentialDuplicates = this.findPotentialDuplicates(incomeData);
+    
+    if (potentialDuplicates.length > 0) {
+      const totalDuplicates = potentialDuplicates.reduce(
+        (count, group) => count + group.records.length, 0);
+      
       issues.push({
         type: 'potential_duplicates',
-        message: `Found ${duplicateGroups.length} potential duplicate income entries`,
-        affectedGroups: duplicateGroups
+        description: `Found ${potentialDuplicates.length} groups with potential duplicate entries (${totalDuplicates} records affected)`,
+        severity: potentialDuplicates.length > 2 ? 'high' : 'medium',
+        affectedRecords: totalDuplicates,
+        suggestions: [
+          'Review similar entries and merge if appropriate',
+          'Check for data entry errors',
+          'Verify if these are genuinely distinct income sources'
+        ]
       });
       
-      suggestedFixes.push({
-        type: 'remove_duplicates',
-        message: 'Review and remove duplicate entries to avoid double-counting'
+      potentialDuplicates.forEach(group => {
+        const primaryId = group.records[0].id;
+        const duplicateIds = group.records.slice(1).map(r => r.id);
+        
+        suggestedFixes.push({
+          type: 'merge_duplicates',
+          description: `Merge potential duplicates with primary record (ID: ${primaryId})`,
+          automaticFix: false,
+          affectedRecords: duplicateIds
+        });
       });
     }
     
-    // Format issues according to the interface
-    const formattedIssues = issues.map(issue => {
-      let severity: 'high' | 'medium' | 'low';
-      
-      if (issue.type === 'potential_duplicates') {
-        severity = 'high';
-      } else if (issue.type === 'outlier_amounts') {
-        severity = 'medium';
-      } else {
-        severity = 'low';
+    // Check for inconsistent frequency
+    const frequencyCounts: Record<string, Income[]> = {};
+    incomeData.forEach(income => {
+      const freq = income.frequency.toLowerCase();
+      if (!frequencyCounts[freq]) {
+        frequencyCounts[freq] = [];
       }
+      frequencyCounts[freq].push(income);
+    });
+    
+    if (Object.keys(frequencyCounts).length > 2) {
+      const freqList = Object.keys(frequencyCounts).join(', ');
+      issues.push({
+        type: 'inconsistent_frequency',
+        description: `Mixed frequency units found: ${freqList}`,
+        severity: 'low',
+        affectedRecords: incomeData.length,
+        suggestions: [
+          'Consider standardizing to monthly or annual frequency',
+          'Group similar frequencies together for analysis',
+          'Verify that frequency values are correctly entered'
+        ]
+      });
       
-      return {
-        type: issue.type,
-        severity,
-        description: issue.message,
-        affectedRecords: issue.affectedIds?.length || issue.affectedGroups?.flat().length || 0,
-        recommendation: suggestedFixes.find(fix => fix.type.includes(issue.type.split('_')[0]))?.message || undefined
-      };
-    });
-    
-    // Format potential duplicates
-    const formattedDuplicates = duplicateGroups.map((group, index) => {
-      return {
-        group: index + 1,
-        records: group.map(income => {
-          return {
-            id: income.id,
-            source: income.source,
-            amount: income.amount,
-            similarity: 1.0 - (index * 0.1) // Mock similarity score
-          };
-        })
-      };
-    });
-    
+      // Suggest converting all to monthly (most common for income analysis)
+      const nonMonthlyIncomes = incomeData.filter(income => 
+        income.frequency.toLowerCase() !== 'monthly');
+      
+      if (nonMonthlyIncomes.length > 0) {
+        suggestedFixes.push({
+          type: 'standardize_frequency',
+          description: 'Convert all income records to monthly frequency',
+          automaticFix: true,
+          affectedRecords: nonMonthlyIncomes.map(income => income.id)
+        });
+      }
+    }
+
+    // Calculate data quality score based on issues
+    const qualityScore = this.calculateDataQualityScore(issues, totalRecords);
+
     return {
-      qualityScore: this.calculateDataQualityScore(issues, incomeData.length),
-      totalRecords: incomeData.length,
-      issues: formattedIssues,
-      potentialDuplicates: formattedDuplicates
+      qualityScore,
+      totalRecords,
+      issues,
+      suggestedFixes,
+      potentialDuplicates
     };
   }
-  
+
   /**
    * Finds potential duplicate income entries based on similar attributes
    * @param incomeData Array of income records
    * @returns Array of groups of potential duplicates
    */
-  private findPotentialDuplicates(incomeData: Income[]): Income[][] {
-    if (!Array.isArray(incomeData) || incomeData.length === 0) {
-      return [];
-    }
-    
-    const duplicateGroups: Income[][] = [];
-    const checked = new Set<number>();
+  private findPotentialDuplicates(incomeData: Income[]): DuplicateGroup[] {
+    const duplicateGroups: DuplicateGroup[] = [];
+    const processedIds = new Set<number>();
     
     for (let i = 0; i < incomeData.length; i++) {
-      if (checked.has(incomeData[i].id)) continue;
+      const incomeA = incomeData[i];
       
-      const current = incomeData[i];
-      const similars = [current];
+      if (processedIds.has(incomeA.id)) continue;
+      
+      const similarIncomes: Income[] = [incomeA];
+      let reason = '';
       
       for (let j = i + 1; j < incomeData.length; j++) {
-        const other = incomeData[j];
+        const incomeB = incomeData[j];
         
-        const currentAmount = parseFloat(current.amount);
-        const otherAmount = parseFloat(other.amount);
+        if (processedIds.has(incomeB.id)) continue;
         
-        // Consider entries similar if they have the same source and similar amounts
-        if (
-          current.source === other.source &&
-          current.frequency === other.frequency &&
-          Math.abs(currentAmount - otherAmount) < (currentAmount * 0.05) // Within 5%
-        ) {
-          similars.push(other);
-          checked.add(other.id);
+        // Check for potential duplicates based on several criteria
+        const sameSource = incomeA.source === incomeB.source;
+        const sameFrequency = incomeA.frequency === incomeB.frequency;
+        
+        // Check for similar amounts (within 5%)
+        const amountA = parseFloat(incomeA.amount);
+        const amountB = parseFloat(incomeB.amount);
+        const amountDiff = Math.abs(amountA - amountB);
+        const similarAmount = (amountDiff / Math.max(amountA, amountB)) <= 0.05;
+        
+        // Check for similar descriptions using simple match
+        const similarDescription = incomeA.description && incomeB.description && 
+          (incomeA.description.toLowerCase().includes(incomeB.description.toLowerCase()) || 
+           incomeB.description.toLowerCase().includes(incomeA.description.toLowerCase()));
+        
+        // Check for close dates
+        const dateA = new Date(incomeA.createdAt);
+        const dateB = new Date(incomeB.createdAt);
+        const daysDiff = Math.abs(dateA.getTime() - dateB.getTime()) / (1000 * 60 * 60 * 24);
+        const closeDates = daysDiff <= 7; // Within a week
+        
+        // Determine if this is likely a duplicate
+        let isDuplicate = false;
+        
+        if (sameSource && sameFrequency && similarAmount) {
+          isDuplicate = true;
+          reason = 'Same source, frequency and similar amount';
+        } else if (sameSource && similarAmount && closeDates) {
+          isDuplicate = true;
+          reason = 'Same source, similar amount and created within a week';
+        } else if (sameSource && sameFrequency && similarDescription) {
+          isDuplicate = true;
+          reason = 'Same source, frequency and similar description';
+        }
+        
+        if (isDuplicate) {
+          similarIncomes.push(incomeB);
+          processedIds.add(incomeB.id);
         }
       }
       
-      if (similars.length > 1) {
-        duplicateGroups.push(similars);
+      // If we found potential duplicates
+      if (similarIncomes.length > 1) {
+        processedIds.add(incomeA.id);
+        
+        // Calculate similarity score (0-1)
+        const similarity = 0.7 + (0.3 * (similarIncomes.length - 2) / incomeData.length);
+        
+        duplicateGroups.push({
+          records: similarIncomes,
+          similarity: similarity,
+          reason: reason
+        });
       }
-      
-      checked.add(current.id);
     }
     
     return duplicateGroups;
   }
-  
+
   /**
    * Calculates a data quality score based on issues found
    * @param issues Array of issues found
@@ -204,28 +291,45 @@ export class DataCleanerAgent {
    * @returns Quality score from 0-100
    */
   private calculateDataQualityScore(issues: DataIssue[], totalRecords: number): number {
-    // Input validation with safe defaults
-    if (!Array.isArray(issues)) {
-      return 100; // Default to perfect score if no issues data
+    if (issues.length === 0 || totalRecords === 0) {
+      return 100; // Perfect score if no issues or no records
     }
     
-    if (totalRecords === 0) return 100;
-    
-    // Calculate how many records have issues
+    // Calculate total affected records (may have overlaps)
     const affectedRecords = new Set<number>();
-    
     issues.forEach(issue => {
-      if (issue.affectedIds) {
-        issue.affectedIds.forEach((id: number) => affectedRecords.add(id));
-      } else if (issue.affectedGroups) {
-        issue.affectedGroups.forEach((group: Income[]) => {
-          group.forEach((income: Income) => affectedRecords.add(income.id));
+      // If the issue has specific IDs, add them
+      if (issue.type === 'potential_duplicates') {
+        // Count each affected record once
+        const duplicateGroups = this.findPotentialDuplicates([]);
+        duplicateGroups.forEach(group => {
+          group.records.forEach((income: Income) => affectedRecords.add(income.id));
         });
+      } else {
+        // Just add the count of affected records (not ideal but workable)
+        for (let i = 0; i < issue.affectedRecords; i++) {
+          affectedRecords.add(i);
+        }
       }
     });
     
-    // Score is the percentage of records without issues
-    const score = 100 - (affectedRecords.size / totalRecords * 100);
-    return Math.round(score);
+    // Calculate severity weights (higher severity = more impact on score)
+    const severityWeights = {
+      high: 3,
+      medium: 2,
+      low: 1
+    };
+    
+    // Calculate weighted issue score
+    const weightedIssueScore = issues.reduce((score, issue) => {
+      const weight = severityWeights[issue.severity];
+      return score + (weight * issue.affectedRecords / totalRecords);
+    }, 0);
+    
+    // Calculate final quality score (0-100)
+    // Higher weightedIssueScore means more issues, so subtract from 100
+    const qualityScore = Math.max(0, Math.min(100, 100 - (weightedIssueScore * 25)));
+    
+    return Math.round(qualityScore);
   }
 }

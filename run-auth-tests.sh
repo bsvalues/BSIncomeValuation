@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Set environment to test
-export NODE_ENV=test
+# Run only authentication-related tests
+npx jest --testMatch="**/__tests__/auth/**/*.test.ts" --verbose
 
-# Run Jest tests with --no-cache flag to avoid potential caching issues
-npx jest __tests__/unit/auth.test.ts --no-cache --testTimeout=10000
+echo "Authentication tests completed!"

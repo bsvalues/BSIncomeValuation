@@ -2,8 +2,8 @@ import type { Config } from '@jest/types';
 
 const config: Config.InitialOptions = {
   preset: 'ts-jest',
-  testEnvironment: 'node',
-  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  testEnvironment: 'jsdom', // Use jsdom for React component testing
+  testMatch: ['**/__tests__/**/*.ts?(x)', '**/?(*.)+(spec|test).ts?(x)'],
   moduleNameMapper: {
     '^@shared/(.*)$': '<rootDir>/shared/$1',
     '^@/(.*)$': '<rootDir>/client/src/$1',
@@ -11,6 +11,7 @@ const config: Config.InitialOptions = {
   transform: {
     '^.+\\.tsx?$': 'ts-jest',
   },
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'], // Include our setup file
   clearMocks: true,
   collectCoverage: true,
   coverageDirectory: 'coverage',
