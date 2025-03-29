@@ -17,6 +17,9 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [location, setLocation] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
+  
+  // Development mode indicator - always true in our current dev setup
+  const isDevelopmentMode = true;
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -45,6 +48,12 @@ export default function Navbar() {
 
   return (
     <header className="bg-blue-600 text-white py-4 shadow-md">
+      {/* Dev Mode Banner */}
+      {isDevelopmentMode && (
+        <div className="bg-amber-500 text-xs md:text-sm text-black px-4 py-1 text-center font-medium">
+          ⚠️ DEVELOPMENT MODE - Authentication Disabled - All Protected Routes Accessible
+        </div>
+      )}
       <div className="max-w-6xl mx-auto px-4">
         <nav className="flex justify-between items-center">
           <div className="flex items-center">

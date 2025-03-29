@@ -44,48 +44,29 @@ type RegisterData = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: {children: React.ReactNode}) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // DEVELOPMENT MODE: Auto-authentication is enabled
+  // This creates a mock authenticated user for development purposes
+  const mockUser: User = {
+    id: 1,
+    username: 'devuser',
+    email: 'dev@example.com',
+    fullName: 'Development User',
+    role: 'user'
+  };
+  
+  const [user, setUser] = useState<User | null>(mockUser); // Always authenticated in dev mode
+  const [isLoading, setIsLoading] = useState(false); // No loading in dev mode
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  // Check if user is already logged in on mount
+  // Authentication check disabled for development
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      setIsLoading(true);
-      try {
-        // Check if tokens exist
-        const refreshToken = localStorage.getItem('refreshToken');
-        const accessToken = localStorage.getItem('accessToken');
-        
-        if (!refreshToken || !accessToken) {
-          setIsLoading(false);
-          return;
-        }
-        
-        // Try to get current user with existing token
-        const response = await fetch('/api/auth/me', {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        } else if (response.status === 401 || response.status === 403) {
-          // Token expired, try to refresh
-          await refreshTokens();
-        }
-      } catch (err) {
-        console.error('Auth check error:', err);
-        clearAuthData();
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    // DEV MODE: Authentication check is bypassed
+    console.log('⚠️ DEVELOPMENT MODE: Authentication disabled. All users auto-authenticated.');
     
-    checkAuthStatus();
+    // Store tokens for any API requests that might need them
+    localStorage.setItem('accessToken', 'dev-mode-token');
+    localStorage.setItem('refreshToken', 'dev-mode-refresh-token');
   }, []);
   
   // Function to refresh tokens
@@ -140,93 +121,68 @@ export const AuthProvider = ({ children }: {children: React.ReactNode}) => {
     }
   };
   
-  // Login function
+  // Login function (DEV MODE: Auto login success)
   const login = async (username: string, password: string) => {
-    setError(null);
-    try {
-      const response = await apiRequest<AuthResponse>(
-        'POST',
-        '/api/auth/login',
-        {
-          body: JSON.stringify({ username, password }),
-        }
-      );
-      
-      if (response.error) {
-        setError(response.error);
-        return { success: false, error: response.error };
-      }
-      
-      // Store tokens
-      localStorage.setItem('accessToken', response.accessToken);
-      localStorage.setItem('refreshToken', response.refreshToken);
-      
-      // Set user
-      setUser(response.user);
-      
-      // Reset query cache
-      queryClient.invalidateQueries();
-      
-      return { success: true };
-    } catch (err: any) {
-      const errorMsg = err.message || 'Login failed';
-      setError(errorMsg);
-      return { success: false, error: errorMsg };
-    }
+    console.log('⚠️ DEV MODE: Auto login success for:', username);
+    
+    // Set mock user with the provided username for some personalization
+    const devModeUser: User = {
+      ...mockUser,
+      username: username,
+      email: `${username}@example.com`
+    };
+    
+    // Store tokens
+    localStorage.setItem('accessToken', 'dev-mode-token');
+    localStorage.setItem('refreshToken', 'dev-mode-refresh-token');
+    
+    // Set user
+    setUser(devModeUser);
+    
+    // Reset query cache
+    queryClient.invalidateQueries();
+    
+    return { success: true };
   };
   
-  // Register function
+  // Register function (DEV MODE: Auto register success)
   const register = async (userData: RegisterData) => {
-    setError(null);
-    try {
-      const response = await apiRequest<AuthResponse>(
-        'POST',
-        '/api/auth/register', 
-        {
-          body: JSON.stringify(userData),
-        }
-      );
-      
-      if (response.error) {
-        setError(response.error);
-        return { success: false, error: response.error };
-      }
-      
-      // Store tokens
-      localStorage.setItem('accessToken', response.accessToken);
-      localStorage.setItem('refreshToken', response.refreshToken);
-      
-      // Set user
-      setUser(response.user);
-      
-      return { success: true };
-    } catch (err: any) {
-      const errorMsg = err.message || 'Registration failed';
-      setError(errorMsg);
-      return { success: false, error: errorMsg };
-    }
+    console.log('⚠️ DEV MODE: Auto register success for:', userData.username);
+    
+    // Set mock user with the provided data
+    const devModeUser: User = {
+      id: 1,
+      username: userData.username,
+      email: userData.email,
+      fullName: userData.fullName,
+      role: 'user'
+    };
+    
+    // Store tokens
+    localStorage.setItem('accessToken', 'dev-mode-token');
+    localStorage.setItem('refreshToken', 'dev-mode-refresh-token');
+    
+    // Set user
+    setUser(devModeUser);
+    
+    return { success: true };
   };
   
-  // Logout function
+  // Logout function (DEV MODE: Auto logout with instant restore)
   const logout = async () => {
-    try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (refreshToken) {
-        await apiRequest<{success: boolean}>(
-          'POST',
-          '/api/auth/logout', 
-          {
-            body: JSON.stringify({ refreshToken }),
-          }
-        );
-      }
-    } catch (err) {
-      console.error('Logout error:', err);
-    } finally {
-      clearAuthData();
-      // Reset query cache
-      queryClient.invalidateQueries();
-    }
+    console.log('⚠️ DEV MODE: Simulating logout, but will auto-restore session');
+    
+    // Simulate logout
+    setUser(null);
+    
+    // Reset query cache
+    queryClient.invalidateQueries();
+    
+    // DEV MODE: Restore the session after a brief moment to simulate logout
+    setTimeout(() => {
+      console.log('⚠️ DEV MODE: Auto-restoring authenticated session');
+      setUser(mockUser);
+    }, 3000);
   };
   
   // Clear auth data
