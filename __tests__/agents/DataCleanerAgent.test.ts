@@ -1,11 +1,12 @@
 import { DataCleanerAgent } from '../../agents/DataCleanerAgent';
 import { Income } from '../../shared/schema';
+import { TestIncome } from '../../shared/testTypes';
 
 describe('DataCleanerAgent', () => {
   let dataCleanerAgent: DataCleanerAgent;
   
   // Mock data for testing
-  const mockIncomeData: Income[] = [
+  const mockIncomeData: TestIncome[] = [
     {
       id: 1,
       userId: 1,

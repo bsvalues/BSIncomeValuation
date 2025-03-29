@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import ComparisonChart, { ScenarioData } from '../../../client/src/components/pro-forma/ComparisonChart';
+import ComparisonChart, { Scenario } from '../../../client/src/components/pro-forma/ComparisonChart';
 
 // Mock Recharts components to avoid DOM measurement errors in tests
 jest.mock('recharts', () => {
@@ -12,7 +12,7 @@ jest.mock('recharts', () => {
 });
 
 describe('ComparisonChart Component', () => {
-  const mockScenarios: ScenarioData[] = [
+  const mockScenarios: Scenario[] = [
     {
       name: 'Current Property',
       data: {

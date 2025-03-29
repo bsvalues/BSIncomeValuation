@@ -300,11 +300,12 @@ export class DataCleanerAgent {
     issues.forEach(issue => {
       // If the issue has specific IDs, add them
       if (issue.type === 'potential_duplicates') {
-        // Count each affected record once
-        const duplicateGroups = this.findPotentialDuplicates([]);
-        duplicateGroups.forEach(group => {
-          group.records.forEach((income: Income) => affectedRecords.add(income.id));
-        });
+        // For duplicate records, we need to count each affected ID
+        // We can't call findPotentialDuplicates here as it would be recursive
+        // Just use the issue's affected records count as an approximation
+        for (let i = 0; i < issue.affectedRecords; i++) {
+          affectedRecords.add(i);
+        }
       } else {
         // Just add the count of affected records (not ideal but workable)
         for (let i = 0; i < issue.affectedRecords; i++) {

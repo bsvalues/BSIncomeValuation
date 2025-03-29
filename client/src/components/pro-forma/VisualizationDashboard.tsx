@@ -9,10 +9,11 @@ const PROPERTY_TYPES = ['Single Family', 'Multi-Family', 'Commercial', 'Mixed Us
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 // Interfaces
-interface VisualizationDashboardProps {
+export interface VisualizationDashboardProps {
   formData: any;
   calculatedMetrics: any;
   comparisonScenarios?: any[];
+  applyAssumptions?: (assumptions: any) => void;
 }
 
 /**
@@ -22,7 +23,8 @@ interface VisualizationDashboardProps {
 const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ 
   formData, 
   calculatedMetrics,
-  comparisonScenarios = []
+  comparisonScenarios = [],
+  applyAssumptions
 }) => {
   // Generate annual cash flow projection data
   const getCashFlowData = () => {
@@ -61,6 +63,32 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({
 
   const cashFlowData = getCashFlowData();
   const expenseData = getExpenseBreakdownData();
+  
+  // Handler for clicking on chart points to apply assumptions
+  const handleChartClick = (data: any) => {
+    if (!applyAssumptions) return;
+    
+    // If a year is clicked, apply assumptions based on that year's projections
+    if (data && data.activePayload && data.activePayload[0]) {
+      const clickedData = data.activePayload[0].payload;
+      
+      if (clickedData.year) {
+        // Create assumptions based on the clicked year
+        const assumptions = {
+          year: clickedData.year,
+          propertyValue: clickedData.propertyValue,
+          cashFlow: clickedData.cashFlow,
+          noi: clickedData.noi,
+          // Add other relevant assumptions
+          appreciationRate: 3.0, // Default assumption
+          incomeGrowthRate: 2.0, // Default assumption
+          expenseGrowthRate: 3.0 // Default assumption
+        };
+        
+        applyAssumptions(assumptions);
+      }
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4">
@@ -71,6 +99,7 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({
           <LineChart
             data={cashFlowData}
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            onClick={applyAssumptions ? handleChartClick : undefined}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="year" label={{ value: 'Year', position: 'insideBottomRight', offset: -5 }} />
@@ -114,6 +143,7 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({
           <BarChart
             data={cashFlowData}
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            onClick={applyAssumptions ? handleChartClick : undefined}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="year" />
@@ -132,6 +162,7 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({
           <LineChart
             data={cashFlowData}
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            onClick={applyAssumptions ? handleChartClick : undefined}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="year" />
