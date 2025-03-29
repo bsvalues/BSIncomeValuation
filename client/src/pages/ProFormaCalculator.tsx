@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { cn, formatCurrency, formatPercentage } from '../lib/utils';
 import VisualizationDashboard from '../components/pro-forma/VisualizationDashboard';
-import ProFormaWorksheet from '../components/pro-forma/ProFormaWorksheet';
+import ProFormaWorksheet, { ProFormaWorksheetRef } from '../components/pro-forma/ProFormaWorksheet';
 
 // Define schema for the Pro Forma Calculator form
 const proFormaSchema = z.object({
@@ -143,6 +143,9 @@ export default function ProFormaCalculator() {
   // State for visualization and worksheet features
   const [showVisualization, setShowVisualization] = useState(false);
   const [showWorksheet, setShowWorksheet] = useState(false);
+  
+  // Ref for the ProFormaWorksheet component
+  const worksheetRef = useRef<ProFormaWorksheetRef>(null);
   
   // Initialize form with react-hook-form
   const form = useForm<ProFormaFormValues>({
@@ -1364,11 +1367,14 @@ export default function ProFormaCalculator() {
                               variant="outline" 
                               className="flex items-center gap-2"
                               onClick={() => {
-                                // The ProFormaWorksheet component handles the PDF export internally
-                                toast({
-                                  title: "Exporting PDF",
-                                  description: "Your Valuation Worksheet is being generated as a PDF.",
-                                });
+                                // Use the ref to call the PDF export function
+                                if (worksheetRef.current) {
+                                  worksheetRef.current.downloadPDF();
+                                  toast({
+                                    title: "Exporting PDF",
+                                    description: "Your Valuation Worksheet is being generated as a PDF.",
+                                  });
+                                }
                               }}
                             >
                               <Download className="h-4 w-4" />
@@ -1377,6 +1383,7 @@ export default function ProFormaCalculator() {
                           </div>
                           
                           <ProFormaWorksheet 
+                            ref={worksheetRef}
                             formData={form.getValues()}
                             calculatedMetrics={{
                               effectiveGrossIncome: (form.getValues().incomeProjections.rentalUnit === 'monthly' 

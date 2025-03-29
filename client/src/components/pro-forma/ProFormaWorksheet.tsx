@@ -1,10 +1,15 @@
-import React, { useRef } from 'react';
+import React, { forwardRef, useImperativeHandle } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Printer, Download, FileDown } from 'lucide-react';
 import { formatCurrency } from '../../lib/utils';
 import { usePDF } from 'react-to-pdf';
+
+// Export type for ref
+export interface ProFormaWorksheetRef {
+  downloadPDF: () => void;
+}
 
 interface ProFormaData {
   propertyInfo: {
@@ -64,16 +69,16 @@ interface ProFormaWorksheetProps {
   rentGrowthRate?: number;
 }
 
-export default function ProFormaWorksheet({
-  formData,
-  calculatedMetrics,
-  appreciationRate = 3,
-  rentGrowthRate = 2.5
-}: ProFormaWorksheetProps) {
-  // Removed unused ref
+const ProFormaWorksheet = forwardRef<ProFormaWorksheetRef, ProFormaWorksheetProps>(
+  ({ formData, calculatedMetrics, appreciationRate = 3, rentGrowthRate = 2.5 }, ref) => {
   const { toPDF, targetRef } = usePDF({
     filename: `ProForma_${formData.propertyInfo.location.replace(/\s+/g, '_')}.pdf`
   });
+  
+  // Expose the downloadPDF method via ref
+  useImperativeHandle(ref, () => ({
+    downloadPDF: () => toPDF()
+  }));
 
   // Generate 10-year projection data
   const generateProjection = () => {
@@ -482,4 +487,6 @@ export default function ProFormaWorksheet({
       </Card>
     </div>
   );
-}
+});
+
+export default ProFormaWorksheet;
