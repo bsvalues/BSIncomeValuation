@@ -1,4 +1,5 @@
 import { Income, Valuation } from '../shared/schema';
+import { z } from 'zod';
 
 /**
  * Interface for the analysis results from the valuation agent
@@ -25,6 +26,7 @@ export interface IncomeAnalysis {
     rangeMax: string;
     confidenceScore: number;
   };
+  errors?: string[]; // Optional errors that didn't prevent analysis but might affect quality
 }
 
 /**
@@ -41,7 +43,42 @@ export interface AnomalyDetection {
   }>;
   insights: string[];
   summary: string;
+  errors?: string[]; // Optional errors that didn't prevent analysis but might affect quality
 }
+
+// Validation schema for Income data
+export const IncomeSchema = z.object({
+  id: z.number().int().positive(),
+  userId: z.number().int().positive(),
+  source: z.string().min(1).max(50),
+  amount: z.string().refine(value => {
+    const num = parseFloat(value);
+    return !isNaN(num) && num > 0;
+  }, { message: "Amount must be a valid positive number" }),
+  frequency: z.enum(["weekly", "biweekly", "monthly", "quarterly", "annually"])
+    .or(z.string()), // Allow string but will be normalized in processing
+  description: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date()
+});
+
+// Validation schema for Valuation data
+export const ValuationSchema = z.object({
+  id: z.number().int().positive(),
+  userId: z.number().int().positive(),
+  valuationAmount: z.string().refine(value => {
+    const num = parseFloat(value);
+    return !isNaN(num) && num > 0;
+  }, { message: "Valuation amount must be a valid positive number" }),
+  multiplier: z.string().refine(value => {
+    const num = parseFloat(value);
+    return !isNaN(num) && num > 0;
+  }, { message: "Multiplier must be a valid positive number" }),
+  valuationDate: z.date(),
+  notes: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date()
+});
 
 /**
  * ValuationAgent - AI-powered agent for analyzing income data and generating valuation insights
@@ -53,13 +90,73 @@ export class ValuationAgent {
    * @param incomeData Array of income records
    * @returns Analysis results and recommendations
    */
+  /**
+   * Pre-processes income data to normalize values and handle edge cases
+   * @param incomeData Raw income data to process
+   * @returns Processed income data array and any validation errors
+   */
+  private preprocessIncomeData(incomeData: Income[]): { processed: Income[], errors: string[] } {
+    const processed: Income[] = [];
+    const errors: string[] = [];
+    
+    // Process each income record
+    for (let i = 0; i < incomeData.length; i++) {
+      const income = { ...incomeData[i] };
+      
+      try {
+        // Validate with Zod schema
+        IncomeSchema.parse(income);
+        
+        // Normalize frequency to lowercase for consistent processing
+        income.frequency = income.frequency.toLowerCase();
+        
+        // Add to processed array
+        processed.push(income);
+      } catch (error) {
+        // If validation fails, record error but still try to use the data
+        if (error instanceof z.ZodError) {
+          const errorDetails = error.errors.map(e => `Field '${e.path.join('.')}': ${e.message}`).join('; ');
+          errors.push(`Invalid income record (ID: ${income.id || 'unknown'}): ${errorDetails}`);
+        } else {
+          errors.push(`Error processing income record (ID: ${income.id || 'unknown'}): ${(error as Error).message}`);
+        }
+        
+        // Still add to processed array if we can salvage it
+        if (income.id && income.amount && parseFloat(income.amount) > 0) {
+          // Ensure frequency is normalized
+          if (!income.frequency || typeof income.frequency !== 'string') {
+            income.frequency = 'monthly'; // Default to monthly if missing
+            errors.push(`Missing frequency for income record ${income.id}, defaulting to monthly`);
+          }
+          
+          processed.push(income);
+        }
+      }
+    }
+    
+    // Check if we have a reasonable number of income records
+    if (processed.length === 0 && incomeData.length > 0) {
+      errors.push('All income records failed validation. Check data format.');
+    }
+    
+    return { processed, errors };
+  }
+  
   async analyzeIncome(incomeData: Income[]): Promise<IncomeAnalysis> {
     if (!incomeData || incomeData.length === 0) {
       throw new Error('Cannot analyze income: No income data provided');
     }
+    
+    // Preprocess income data
+    const { processed, errors } = this.preprocessIncomeData(incomeData);
+    
+    // If no valid records, throw error
+    if (processed.length === 0) {
+      throw new Error('Cannot analyze income: No valid income records after validation');
+    }
 
     // Calculate total monthly and annual income
-    const totalMonthlyIncome = incomeData.reduce((sum, income) => {
+    const totalMonthlyIncome = processed.reduce((sum, income) => {
       const amount = parseFloat(income.amount);
       // Convert to monthly equivalent if needed
       switch (income.frequency.toLowerCase()) {
@@ -76,7 +173,7 @@ export class ValuationAgent {
 
     // Analyze income distribution by source
     const incomeBySource: Record<string, Income[]> = {};
-    incomeData.forEach(income => {
+    processed.forEach(income => {
       if (!incomeBySource[income.source]) {
         incomeBySource[income.source] = [];
       }
@@ -182,8 +279,73 @@ export class ValuationAgent {
         confidenceScore
       }
     };
+    
+    // Include any validation errors
+    if (errors.length > 0) {
+      result.errors = errors;
+      
+      // Adjust confidence score based on errors
+      result.suggestedValuation.confidenceScore = Math.max(
+        10, 
+        result.suggestedValuation.confidenceScore - (errors.length * 5)
+      );
+      
+      // Add a finding about data quality
+      result.analysis.findings.push(
+        `Data quality issues were detected that may affect accuracy (${errors.length} issues found)`
+      );
+      
+      // Add recommendation about data quality
+      result.analysis.recommendations.push(
+        "Review and correct income data to improve valuation accuracy"
+      );
+    }
 
     return result;
+  }
+
+  /**
+   * Pre-processes valuation data to normalize values and handle edge cases
+   * @param valuationHistory Raw valuation data to process
+   * @returns Processed valuation data array and any validation errors
+   */
+  private preprocessValuationData(valuationHistory: Valuation[]): { processed: Valuation[], errors: string[] } {
+    const processed: Valuation[] = [];
+    const errors: string[] = [];
+    
+    // Process each valuation record
+    for (let i = 0; i < valuationHistory.length; i++) {
+      const valuation = { ...valuationHistory[i] };
+      
+      try {
+        // Validate with Zod schema
+        ValuationSchema.parse(valuation);
+        
+        // Add to processed array
+        processed.push(valuation);
+      } catch (error) {
+        // If validation fails, record error
+        if (error instanceof z.ZodError) {
+          const errorDetails = error.errors.map(e => `Field '${e.path.join('.')}': ${e.message}`).join('; ');
+          errors.push(`Invalid valuation record (ID: ${valuation.id || 'unknown'}): ${errorDetails}`);
+        } else {
+          errors.push(`Error processing valuation record (ID: ${valuation.id || 'unknown'}): ${(error as Error).message}`);
+        }
+        
+        // Still add to processed array if we can salvage it
+        if (valuation.id && valuation.valuationAmount && parseFloat(valuation.valuationAmount) > 0) {
+          // Ensure multiplier is present
+          if (!valuation.multiplier || parseFloat(valuation.multiplier) <= 0) {
+            valuation.multiplier = '3.0'; // Default Benton County multiplier
+            errors.push(`Missing/invalid multiplier for valuation record ${valuation.id}, defaulting to 3.0`);
+          }
+          
+          processed.push(valuation);
+        }
+      }
+    }
+    
+    return { processed, errors };
   }
 
   /**
@@ -200,9 +362,22 @@ export class ValuationAgent {
         summary: 'Insufficient valuation history for anomaly detection'
       };
     }
+    
+    // Preprocess valuation data
+    const { processed, errors } = this.preprocessValuationData(valuationHistory);
+    
+    // If not enough valid records, return early
+    if (processed.length <= 1) {
+      return {
+        anomalies: [],
+        insights: ['Not enough valid valuation data after validation. At least two valuations are required.'],
+        summary: 'Insufficient valid valuation history for anomaly detection',
+        errors
+      };
+    }
 
     // Sort by creation date ascending
-    const sortedValuations = [...valuationHistory].sort(
+    const sortedValuations = [...processed].sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
 
@@ -314,11 +489,21 @@ export class ValuationAgent {
       summary = `Detected ${anomalies.length} anomalies in valuation history. Overall trend shows ${totalPercentChange >= 0 ? 'positive' : 'negative'} growth of ${Math.abs(annualizedGrowth).toFixed(2)}% annually.`;
     }
 
-    return {
+    const result: AnomalyDetection = {
       anomalies,
       insights,
       summary
     };
+    
+    // Include any validation errors if present
+    if (errors.length > 0) {
+      result.errors = errors;
+      
+      // Add an insight about data quality
+      result.insights.push(`${errors.length} data quality issues were detected that may affect anomaly detection accuracy.`);
+    }
+    
+    return result;
   }
 
   /**
