@@ -3,7 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import dotenv from 'dotenv';
 import { testConnection } from './db.config';
-import { seedIncomeMultipliers } from './seed';
+import { seedIncomeMultipliers, seedDevelopmentData } from './seed';
 import { errorHandler } from './errorHandler';
 
 // Load environment variables from .env file
@@ -67,6 +67,9 @@ app.use((req, res, next) => {
   
   // Seed database with default data
   await seedIncomeMultipliers();
+  
+  // Seed development data if in development mode
+  await seedDevelopmentData();
   
   server.listen({
     port,
