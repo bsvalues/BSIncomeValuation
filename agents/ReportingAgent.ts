@@ -1,14 +1,53 @@
-import { Income, Valuation } from '../shared/schema';
+import { Income, Valuation, incomeSourceEnum } from '../shared/schema';
 import { TestValuation } from '../shared/testTypes';
+import { z } from 'zod';
 
-type ReportingPeriod = 'monthly' | 'quarterly' | 'yearly';
+// Reporting period validation schema
+const ReportingPeriodSchema = z.enum(['monthly', 'quarterly', 'yearly']);
+type ReportingPeriod = z.infer<typeof ReportingPeriodSchema>;
 
-interface ReportOptions {
-  period: ReportingPeriod;
-  includeCharts: boolean;
-  includeInsights: boolean;
-  includeRecommendations: boolean;
-}
+// Options schema with validation
+const ReportOptionsSchema = z.object({
+  period: ReportingPeriodSchema,
+  includeCharts: z.boolean(),
+  includeInsights: z.boolean(),
+  includeRecommendations: z.boolean()
+});
+interface ReportOptions extends z.infer<typeof ReportOptionsSchema> {}
+
+// Income schema for validation
+const IncomeSchema = z.object({
+  id: z.number(),
+  userId: z.number(),
+  source: z.enum(['salary', 'business', 'freelance', 'investment', 'rental', 'other']),
+  amount: z.string().refine(val => !isNaN(parseFloat(val)), {
+    message: 'Amount must be a valid number string'
+  }),
+  frequency: z.string(),
+  description: z.string().optional().nullable(),
+  createdAt: z.date()
+});
+
+// Valuation schema for validation
+const ValuationSchema = z.object({
+  id: z.number(),
+  userId: z.number(),
+  name: z.string().min(1, "Name is required"),
+  totalAnnualIncome: z.string().refine(val => !isNaN(parseFloat(val)), {
+    message: 'Total annual income must be a valid number string'
+  }),
+  multiplier: z.string().refine(val => !isNaN(parseFloat(val)), {
+    message: 'Multiplier must be a valid number string'
+  }),
+  valuationAmount: z.string().refine(val => !isNaN(parseFloat(val)), {
+    message: 'Valuation amount must be a valid number string'
+  }),
+  incomeBreakdown: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  isActive: z.boolean().optional()
+});
 
 interface ValuationMetrics {
   averageValuation: number;
@@ -56,6 +95,7 @@ interface ValuationReport {
   charts?: ChartData;
   dateGenerated: Date;
   periodCovered: { start: Date; end: Date };
+  errors?: string[]; // Optional array of errors encountered during processing
 }
 
 /**
@@ -78,22 +118,66 @@ export class ReportingAgent {
       throw new Error('Cannot generate report: Missing income or valuation data');
     }
 
-    // Default options
-    const reportOptions: ReportOptions = {
-      period: options?.period || 'monthly',
-      includeCharts: options?.includeCharts !== undefined ? options.includeCharts : true,
-      includeInsights: options?.includeInsights !== undefined ? options.includeInsights : true,
-      includeRecommendations: options?.includeRecommendations !== undefined ? options.includeRecommendations : true
-    };
+    // Initialize errors collection
+    const errors: string[] = [];
 
-    // Calculate metrics
-    const metrics = this.calculateMetrics(incomeData, valuationHistory);
+    // Validate and pre-process options
+    let validatedOptions: ReportOptions;
+    try {
+      // Default options
+      const defaultOptions: ReportOptions = {
+        period: 'monthly',
+        includeCharts: true,
+        includeInsights: true,
+        includeRecommendations: true
+      };
+      
+      // Merge with provided options
+      const mergedOptions = {
+        ...defaultOptions,
+        ...options
+      };
+      
+      // Validate with schema
+      validatedOptions = ReportOptionsSchema.parse(mergedOptions);
+    } catch (error) {
+      // If validation fails, use defaults and add to errors
+      validatedOptions = {
+        period: 'monthly',
+        includeCharts: true,
+        includeInsights: true,
+        includeRecommendations: true
+      };
+      
+      if (error instanceof z.ZodError) {
+        const optionsErrors = error.errors.map(e => `Invalid option '${e.path.join('.')}': ${e.message}`);
+        errors.push(...optionsErrors);
+        
+        // Add specific errors for reporting period
+        if (options?.period && !['monthly', 'quarterly', 'yearly'].includes(options.period)) {
+          errors.push(`Invalid reporting period '${options.period}'. Using default 'monthly'.`);
+        }
+      } else {
+        errors.push(`Error validating report options: ${(error as Error).message}`);
+      }
+    }
+    
+    // Pre-process income and valuation data
+    const processedIncome = this.preprocessIncomeData(incomeData);
+    const processedValuations = this.preprocessValuationData(valuationHistory);
+    
+    // Collect errors from preprocessing
+    errors.push(...processedIncome.errors);
+    errors.push(...processedValuations.errors);
+
+    // Calculate metrics using processed data
+    const metrics = this.calculateMetrics(processedIncome.processed, processedValuations.processed);
 
     // Generate period covered
     const now = new Date();
     let startDate: Date;
     
-    switch (reportOptions.period) {
+    switch (validatedOptions.period) {
       case 'monthly':
         startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
         break;
@@ -106,25 +190,25 @@ export class ReportingAgent {
     }
 
     // Group data by reporting period
-    const groupedValuations = this.getDataByPeriod(valuationHistory, reportOptions.period);
+    const groupedValuations = this.getDataByPeriod(processedValuations.processed, validatedOptions.period);
 
-    // Generate insights
-    const insights = reportOptions.includeInsights 
-      ? this.generateInsights(incomeData, valuationHistory, metrics, reportOptions.period)
+    // Generate insights if requested
+    const insights = validatedOptions.includeInsights 
+      ? this.generateInsights(processedIncome.processed, processedValuations.processed, metrics, validatedOptions.period)
       : [];
 
-    // Generate recommendations
-    const recommendations = reportOptions.includeRecommendations
+    // Generate recommendations if requested
+    const recommendations = validatedOptions.includeRecommendations
       ? this.generateRecommendations(metrics, insights)
       : [];
 
-    // Generate chart data
-    const charts = reportOptions.includeCharts
-      ? this.prepareChartData(incomeData, valuationHistory, reportOptions.period)
+    // Generate chart data if requested
+    const charts = validatedOptions.includeCharts
+      ? this.prepareChartData(processedIncome.processed, processedValuations.processed, validatedOptions.period)
       : undefined;
 
     // Generate summary text
-    const summary = await this.generateValuationSummary(incomeData, valuationHistory);
+    const summary = await this.generateValuationSummary(processedIncome.processed, processedValuations.processed);
 
     return {
       summary,
@@ -136,7 +220,8 @@ export class ReportingAgent {
       periodCovered: {
         start: startDate,
         end: now
-      }
+      },
+      errors: errors.length > 0 ? errors : undefined
     };
   }
 
@@ -156,13 +241,17 @@ export class ReportingAgent {
       };
     }
 
+    // Pre-process the data for validation
+    const processedIncome = this.preprocessIncomeData(incomeData);
+    const processedValuations = this.preprocessValuationData(valuationHistory);
+
     // Sort by date
-    const sortedValuations = [...valuationHistory].sort(
+    const sortedValuations = [...processedValuations.processed].sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
 
-    // Get metrics
-    const metrics = this.calculateMetrics(incomeData, valuationHistory);
+    // Get metrics using validated data
+    const metrics = this.calculateMetrics(processedIncome.processed, processedValuations.processed);
     
     // Calculate basic stats
     const firstValuation = sortedValuations[0];
@@ -230,6 +319,104 @@ export class ReportingAgent {
     };
   }
 
+  /**
+   * Pre-processes income data to normalize values and handle edge cases
+   * @param incomeData Raw income data to process
+   * @returns Processed income data array and any validation errors
+   */
+  private preprocessIncomeData(incomeData: Income[]): { processed: Income[], errors: string[] } {
+    const processed: Income[] = [];
+    const errors: string[] = [];
+    
+    // Process each income record
+    for (let i = 0; i < incomeData.length; i++) {
+      const income = { ...incomeData[i] };
+      
+      try {
+        // Validate with Zod schema
+        IncomeSchema.parse(income);
+        
+        // Fix any additional issues not caught by schema
+        const amountNum = parseFloat(income.amount);
+        if (amountNum < 0) {
+          errors.push(`Income ID ${income.id}: Fixed negative amount (${income.amount})`);
+          income.amount = Math.abs(amountNum).toString();
+        }
+        
+        // Add to processed array
+        processed.push(income);
+      } catch (error) {
+        // If validation fails, record error
+        if (error instanceof z.ZodError) {
+          const errorDetails = error.errors.map(e => `Field '${e.path.join('.')}': ${e.message}`).join('; ');
+          errors.push(`Invalid income record (ID: ${income.id || 'unknown'}): ${errorDetails}`);
+        } else {
+          errors.push(`Error processing income record (ID: ${income.id || 'unknown'}): ${(error as Error).message}`);
+        }
+        
+        // Attempt to partially fix if possible
+        if (income.id && income.amount) {
+          // Check if source is the issue - use 'other' as fallback
+          if (!['salary', 'business', 'freelance', 'investment', 'rental', 'other'].includes(income.source)) {
+            income.source = 'other';
+            errors.push(`Income ID ${income.id}: Invalid source '${income.source}' defaulted to 'other'`);
+            processed.push(income);
+          }
+        }
+      }
+    }
+    
+    return { processed, errors };
+  }
+  
+  /**
+   * Pre-processes valuation data to normalize values and handle edge cases
+   * @param valuationHistory Raw valuation data to process
+   * @returns Processed valuation data array and any validation errors
+   */
+  private preprocessValuationData(valuationHistory: Valuation[]): { processed: Valuation[], errors: string[] } {
+    const processed: Valuation[] = [];
+    const errors: string[] = [];
+    
+    // Process each valuation record
+    for (let i = 0; i < valuationHistory.length; i++) {
+      const valuation = { ...valuationHistory[i] };
+      
+      try {
+        // Validate with Zod schema
+        ValuationSchema.parse(valuation);
+        
+        // Fix any additional issues not caught by schema
+        const valuationAmount = parseFloat(valuation.valuationAmount);
+        const totalAnnualIncome = parseFloat(valuation.totalAnnualIncome);
+        const multiplier = parseFloat(valuation.multiplier);
+        
+        // Check for consistency between income, multiplier and valuation
+        const calculatedValuation = totalAnnualIncome * multiplier;
+        const difference = Math.abs(calculatedValuation - valuationAmount);
+        
+        if (difference > (calculatedValuation * 0.01)) { // More than 1% difference
+          errors.push(`Valuation ID ${valuation.id}: Inconsistency between totalAnnualIncome (${totalAnnualIncome}), multiplier (${multiplier}), and valuationAmount (${valuationAmount})`);
+        }
+        
+        // Add to processed array
+        processed.push(valuation);
+      } catch (error) {
+        // If validation fails, record error
+        if (error instanceof z.ZodError) {
+          const errorDetails = error.errors.map(e => `Field '${e.path.join('.')}': ${e.message}`).join('; ');
+          errors.push(`Invalid valuation record (ID: ${valuation.id || 'unknown'}): ${errorDetails}`);
+        } else {
+          errors.push(`Error processing valuation record (ID: ${valuation.id || 'unknown'}): ${(error as Error).message}`);
+        }
+        
+        // Don't attempt to fix valuation records - they're more critical to be accurate
+      }
+    }
+    
+    return { processed, errors };
+  }
+  
   /**
    * Private helper methods below
    */

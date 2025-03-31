@@ -1,6 +1,8 @@
 import { ReportingAgent } from '../../agents/ReportingAgent';
 import { Income, Valuation } from '../../shared/schema';
 import { TestIncome, TestValuation } from '../../shared/testTypes';
+import { z } from 'zod';
+import { createMockIncome, createMockValuation } from '../utils/testUtils';
 
 describe('ReportingAgent', () => {
   let reportingAgent: ReportingAgent;
@@ -95,6 +97,49 @@ describe('ReportingAgent', () => {
     test('should throw error when no data is provided', async () => {
       await expect(reportingAgent.generateReport(null as any, null as any)).rejects.toThrow('Cannot generate report: Missing income or valuation data');
     });
+    
+    test('should handle invalid income data', async () => {
+      // Create invalid income data with incorrect source type
+      const invalidIncome = [
+        {...mockIncomeData[0], source: 'invalid_source' as any}
+      ];
+      
+      const report = await reportingAgent.generateReport(invalidIncome, mockValuationHistory);
+      
+      // Should have validation errors in the report
+      expect(report.errors).toBeDefined();
+      expect(report.errors).not.toBeUndefined();
+      expect(report.errors!.length).toBeGreaterThan(0);
+      expect(report.errors![0]).toContain('invalid_source');
+    });
+    
+    test('should handle invalid valuation data', async () => {
+      // Create invalid valuation data with missing required field
+      const invalidValuation = [
+        {...mockValuationHistory[0], multiplier: undefined as any}
+      ];
+      
+      const report = await reportingAgent.generateReport(mockIncomeData, invalidValuation);
+      
+      // Should have validation errors in the report
+      expect(report.errors).toBeDefined();
+      expect(report.errors).not.toBeUndefined();
+      expect(report.errors!.length).toBeGreaterThan(0);
+    });
+    
+    test('should handle invalid report period option', async () => {
+      // Create invalid report options
+      const report = await reportingAgent.generateReport(mockIncomeData, mockValuationHistory, {
+        period: 'invalid_period' as any
+      });
+      
+      // Should default to monthly and include error
+      expect(report.periodCovered).toBeDefined();
+      expect(report.errors).toBeDefined();
+      expect(report.errors).not.toBeUndefined();
+      expect(report.errors!.length).toBeGreaterThan(0);
+      expect(report.errors![0]).toContain('Invalid reporting period');
+    });
 
     test('should generate a report with default options', async () => {
       const report = await reportingAgent.generateReport(mockIncomeData, mockValuationHistory);
@@ -152,6 +197,72 @@ describe('ReportingAgent', () => {
     });
   });
 
+  describe('processIncomeData', () => {
+    test('should filter out invalid income records', async () => {
+      // Create a mix of valid and invalid income records
+      const mixedData = [
+        createMockIncome({ id: 1, source: 'rental' }),
+        createMockIncome({ id: 2, source: 'invalid_source' as any }),
+        createMockIncome({ id: 3, source: 'business' })
+      ];
+      
+      // Access the private method using type assertion
+      const result = (reportingAgent as any).preprocessIncomeData(mixedData);
+      
+      // Should separate valid and invalid records
+      expect(result.processed.length).toBe(2); // Only valid records
+      expect(result.errors.length).toBe(1); // One error for invalid record
+      expect(result.errors[0]).toContain('invalid_source');
+    });
+    
+    test('should handle empty income array', async () => {
+      const result = (reportingAgent as any).preprocessIncomeData([]);
+      
+      expect(result.processed).toEqual([]);
+      expect(result.errors.length).toBe(0);
+    });
+    
+    test('should fix and report fixable issues', async () => {
+      // Create income with fixable issue (negative amount)
+      const fixableIncome = [
+        createMockIncome({ id: 1, amount: '-100' })
+      ];
+      
+      const result = (reportingAgent as any).preprocessIncomeData(fixableIncome);
+      
+      // Should fix the amount but record an error
+      expect(result.processed.length).toBe(1);
+      expect(result.processed[0].amount).toBe('100');
+      expect(result.errors.length).toBe(1);
+      expect(result.errors[0]).toContain('negative amount');
+    });
+  });
+  
+  describe('processValuationData', () => {
+    test('should filter out invalid valuation records', async () => {
+      // Create a mix of valid and invalid valuation records
+      const mixedData = [
+        createMockValuation({ id: 1, name: 'Valid Valuation' }),
+        createMockValuation({ id: 2, name: '' }), // Empty name is invalid
+        createMockValuation({ id: 3, name: 'Another Valid Valuation' })
+      ];
+      
+      // Access the private method using type assertion
+      const result = (reportingAgent as any).preprocessValuationData(mixedData);
+      
+      // Should separate valid and invalid records
+      expect(result.processed.length).toBe(2); // Only valid records
+      expect(result.errors.length).toBe(1); // One error for invalid record
+    });
+    
+    test('should handle empty valuation array', async () => {
+      const result = (reportingAgent as any).preprocessValuationData([]);
+      
+      expect(result.processed).toEqual([]);
+      expect(result.errors.length).toBe(0);
+    });
+  });
+  
   describe('generateValuationSummary', () => {
     test('should handle empty valuation history', async () => {
       const summary = await reportingAgent.generateValuationSummary(mockIncomeData, []);
