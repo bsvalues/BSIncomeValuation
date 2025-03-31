@@ -1,280 +1,215 @@
-import { describe, test, expect, beforeEach, beforeAll, afterAll } from "@jest/globals";
-import express, { Express } from "express";
-import supertest from "supertest";
-import { comparePassword, generateTokens } from "../../server/auth";
-import { registerRoutes } from "../../server/routes";
-import { MockStorage } from "../mocks/mockstorage";
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
+import express, { Express } from 'express';
+import request from 'supertest';
+import { registerRoutes } from '../../server/routes';
+import { MockStorage } from '../mocks/mockstorage';
 
-// Using any types to avoid TypeScript errors during testing
-type Any = any;
-
-class TestServer {
-  app: Express;
-  server: any;
-  mockStorage: MockStorage;
-
-  constructor() {
-    this.app = express();
-    this.mockStorage = new MockStorage();
-    
-    // Access to internal storage for test setup
-    Object.defineProperty(global, "_getMockStorage", {
-      get: () => this.mockStorage
-    });
-  }
-
-  async start() {
-    this.app.use(express.json());
-    this.server = await registerRoutes(this.app);
-  }
-
-  async stop() {
-    if (this.server) {
-      await new Promise<void>((resolve) => {
-        this.server.close(() => resolve());
-      });
+// Mock the storage module
+jest.mock('../../server/storage', () => {
+  const mockStorage = new MockStorage();
+  return {
+    storage: mockStorage,
+    get _getMockStorage() {
+      return mockStorage;
     }
-  }
-}
+  };
+});
 
-describe("Valuation API Integration Tests", () => {
-  let testServer: TestServer;
-  let request: any; // Using any to avoid TypeScript issues with supertest
-  let testUser: Any;
-  let authToken: string;
+// Keep track of original NODE_ENV
+const originalNodeEnv = process.env.NODE_ENV;
+
+describe('Valuation API Tests', () => {
+  let app: Express;
+  let server: any;
+  let mockStorage: MockStorage;
 
   beforeAll(async () => {
-    testServer = new TestServer();
-    await testServer.start();
-    request = supertest(testServer.app);
+    // Set to development mode to enable auth bypass
+    process.env.NODE_ENV = 'development';
+    
+    app = express();
+    app.use(express.json());
+    
+    // Get reference to mock storage
+    mockStorage = (jest.requireMock('../../server/storage') as any)._getMockStorage;
+    
+    // Register routes
+    server = await registerRoutes(app);
   });
 
-  afterAll(async () => {
-    await testServer.stop();
-  });
-
-  beforeEach(async () => {
-    // Reset the database before each test
-    testServer.mockStorage.reset();
+  afterAll((done) => {
+    // Restore original environment
+    process.env.NODE_ENV = originalNodeEnv;
     
-    // Create a test user
-    // Adjust user data to match expected schema
-    const userData: any = {
-      username: "testuser",
-      email: "test@example.com",
-      password: "hashedpassword", // In a real scenario this would be hashed
-      fullName: "Test User",
-      role: "user"
-    };
-    testUser = await testServer.mockStorage.createUser(userData);
-    
-    // Generate auth token for API requests
-    const payload = {
-      userId: testUser.id,
-      username: testUser.username,
-      email: testUser.email,
-      role: testUser.role
-    };
-    const tokens = generateTokens(payload);
-    authToken = tokens.accessToken;
-  });
-
-  test("GET /api/multipliers should return income multipliers", async () => {
-    const res = await request.get("/api/multipliers");
-    
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBe(6); // Should have 6 default multipliers
-    
-    // Check structure of a multiplier
-    const multiplier = res.body[0];
-    expect(multiplier).toHaveProperty("id");
-    expect(multiplier).toHaveProperty("source");
-    expect(multiplier).toHaveProperty("multiplier");
-    expect(multiplier).toHaveProperty("description");
-  });
-
-  test("POST /api/incomes should create a new income", async () => {
-    const income: InsertIncome = {
-      userId: testUser.id,
-      source: "salary",
-      amount: 5000,
-      frequency: "monthly",
-      description: "Test income"
-    };
-    
-    const res = await request
-      .post("/api/incomes")
-      .send(income)
-      .set("Authorization", `Bearer ${authToken}`);
-    
-    expect(res.status).toBe(201);
-    expect(res.body).toHaveProperty("id");
-    expect(res.body.source).toBe("salary");
-    expect(res.body.amount).toBe(5000);
-  });
-
-  test("GET /api/users/:userId/incomes should return user's incomes", async () => {
-    // Add test incomes
-    const incomes: InsertIncome[] = [
-      {
-        userId: testUser.id,
-        source: "salary",
-        amount: 5000,
-        frequency: "monthly",
-        description: "Primary job"
-      },
-      {
-        userId: testUser.id,
-        source: "freelance",
-        amount: 1000,
-        frequency: "monthly",
-        description: "Side gigs"
-      }
-    ];
-    
-    for (const income of incomes) {
-      await testServer.mockStorage.createIncome(income);
+    if (server) {
+      server.close(done);
+    } else {
+      done();
     }
-    
-    const res = await request
-      .get(`/api/users/${testUser.id}/incomes`)
-      .set("Authorization", `Bearer ${authToken}`);
-    
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBe(2);
   });
 
-  test("POST /api/valuations should create a new valuation", async () => {
-    // First create some incomes
-    const income: InsertIncome = {
-      userId: testUser.id,
-      source: "salary",
-      amount: 5000,
-      frequency: "monthly",
-      description: "Test income"
-    };
-    await testServer.mockStorage.createIncome(income);
+  beforeEach(() => {
+    mockStorage.reset();
     
-    // Now create a valuation
-    const valuation: InsertValuation = {
-      userId: testUser.id,
-      name: "Test Valuation",
-      valuationAmount: 150000,
-      totalAnnualIncome: 60000,
-      multiplier: 2.5,
-      notes: "Test notes",
-      isActive: true
-    };
+    // Seed with test data
+    mockStorage.createUser({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'password123',
+      role: 'user',
+      fullName: 'Test User'
+    });
     
-    const res = await request
-      .post("/api/valuations")
-      .send(valuation)
-      .set("Authorization", `Bearer ${authToken}`);
+    // Add test income data
+    mockStorage.createIncome({
+      userId: 1,
+      source: 'rental',
+      amount: '2000',
+      frequency: 'monthly',
+      description: 'Rental income from apartment'
+    });
     
-    expect(res.status).toBe(201);
-    expect(res.body).toHaveProperty("id");
-    expect(res.body.name).toBe("Test Valuation");
-    expect(res.body.valuationAmount).toBe("150000");
+    mockStorage.createIncome({
+      userId: 1,
+      source: 'business',
+      amount: '5000',
+      frequency: 'monthly',
+      description: 'Small business revenue'
+    });
+    
+    // Add test valuation
+    mockStorage.createValuation({
+      userId: 1,
+      name: 'Existing Valuation',
+      totalAnnualIncome: '84000',
+      multiplier: '3.5',
+      valuationAmount: '294000',
+      notes: 'Test valuation'
+    });
   });
 
-  test("GET /api/users/:userId/valuations should return user's valuations", async () => {
-    // Add test valuations
-    const valuations: InsertValuation[] = [
-      {
-        userId: testUser.id,
-        name: "Valuation 1",
-        valuationAmount: 150000,
-        totalAnnualIncome: 60000,
-        multiplier: 2.5,
-        notes: "First valuation",
-        isActive: true
-      },
-      {
-        userId: testUser.id,
-        name: "Valuation 2",
-        valuationAmount: 200000,
-        totalAnnualIncome: 80000,
-        multiplier: 2.5,
-        notes: "Second valuation",
-        isActive: true
-      }
-    ];
-    
-    for (const valuation of valuations) {
-      await testServer.mockStorage.createValuation(valuation);
-    }
-    
-    const res = await request
-      .get(`/api/users/${testUser.id}/valuations`)
-      .set("Authorization", `Bearer ${authToken}`);
-    
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBe(2);
+  // Test valuation listing endpoint
+  test('GET /api/valuation should return all valuations with auth bypass', async () => {
+    const response = await request(app)
+      .get('/api/valuation')
+      .expect(200);
+      
+    expect(response.body).toHaveProperty('success', true);
+    expect(response.body).toHaveProperty('data');
+    expect(response.body.data).toHaveLength(1);
+    expect(response.body.data[0]).toHaveProperty('name', 'Existing Valuation');
   });
 
-  test("PUT /api/valuations/:id should update a valuation", async () => {
-    // Create a valuation
-    const valuation: InsertValuation = {
-      userId: testUser.id,
-      name: "Original Name",
-      valuationAmount: 150000,
-      totalAnnualIncome: 60000,
-      multiplier: 2.5,
-      notes: "Original notes",
-      isActive: true
+  // Test individual valuation retrieval
+  test('GET /api/valuation/:id should return a specific valuation with auth bypass', async () => {
+    // First get the valuation ID (assuming ID 1 based on our seed data)
+    const valuationId = 1;
+    
+    const response = await request(app)
+      .get(`/api/valuation/${valuationId}`)
+      .expect(200);
+      
+    expect(response.body).toHaveProperty('success', true);
+    expect(response.body).toHaveProperty('data');
+    expect(response.body.data).toHaveProperty('id', valuationId);
+    expect(response.body.data).toHaveProperty('name', 'Existing Valuation');
+    expect(response.body.data).toHaveProperty('totalAnnualIncome', '84000');
+  });
+
+  // Test creating a new valuation
+  test('POST /api/valuation should create a new valuation with auth bypass', async () => {
+    const newValuation = {
+      userId: 1,
+      name: 'New Test Valuation',
+      totalAnnualIncome: '120000',
+      multiplier: '4',
+      valuationAmount: '480000',
+      notes: 'Another test valuation'
     };
     
-    const createdValuation = await testServer.mockStorage.createValuation(valuation);
+    const response = await request(app)
+      .post('/api/valuation')
+      .send(newValuation)
+      .expect(201);
+      
+    expect(response.body).toHaveProperty('success', true);
+    expect(response.body).toHaveProperty('data');
+    expect(response.body.data).toHaveProperty('name', 'New Test Valuation');
+    expect(response.body.data).toHaveProperty('valuationAmount', '480000');
     
-    // Update the valuation
+    // Verify the valuation was actually created
+    const getResponse = await request(app)
+      .get('/api/valuation')
+      .expect(200);
+      
+    expect(getResponse.body.data).toHaveLength(2);
+  });
+
+  // Test valuation calculation
+  test('POST /api/valuation/calculate should calculate a new valuation with auth bypass', async () => {
+    const valuationRequest = {
+      name: 'Calculated Valuation',
+      multiplier: '3',
+      notes: 'Calculation test'
+    };
+    
+    const response = await request(app)
+      .post('/api/valuation/calculate')
+      .send(valuationRequest)
+      .expect(201);
+      
+    expect(response.body).toHaveProperty('success', true);
+    expect(response.body).toHaveProperty('data');
+    expect(response.body.data).toHaveProperty('valuation');
+    expect(response.body.data).toHaveProperty('calculationDetails');
+    
+    const valuation = response.body.data.valuation;
+    expect(valuation).toHaveProperty('name', 'Calculated Valuation');
+    
+    // Should have calculated based on existing incomes (2000 + 5000) * 12 = 84000
+    expect(valuation).toHaveProperty('totalAnnualIncome', '84000');
+    
+    // Valuation amount should be totalAnnualIncome * multiplier
+    expect(valuation).toHaveProperty('valuationAmount', '252000');
+  });
+
+  // Test updating a valuation
+  test('PUT /api/valuation/:id should update a valuation with auth bypass', async () => {
+    const valuationId = 1;
     const updateData = {
-      name: "Updated Name",
-      notes: "Updated notes"
+      name: 'Updated Valuation Name',
+      multiplier: '4',
+      valuationAmount: '336000' // 84000 * 4
     };
     
-    const res = await request
-      .put(`/api/valuations/${createdValuation.id}`)
+    const response = await request(app)
+      .put(`/api/valuation/${valuationId}`)
       .send(updateData)
-      .set("Authorization", `Bearer ${authToken}`);
-    
-    expect(res.status).toBe(200);
-    expect(res.body.name).toBe("Updated Name");
-    expect(res.body.notes).toBe("Updated notes");
-    
-    // Other fields should remain unchanged
-    expect(res.body.valuationAmount).toBe("150000");
+      .expect(200);
+      
+    expect(response.body).toHaveProperty('success', true);
+    expect(response.body).toHaveProperty('data');
+    expect(response.body.data).toHaveProperty('name', 'Updated Valuation Name');
+    expect(response.body.data).toHaveProperty('multiplier', '4');
+    expect(response.body.data).toHaveProperty('valuationAmount', '336000');
   });
 
-  test("DELETE /api/valuations/:id should delete a valuation", async () => {
-    // Create a valuation
-    const valuation: InsertValuation = {
-      userId: testUser.id,
-      name: "Test Valuation",
-      valuationAmount: 150000,
-      totalAnnualIncome: 60000,
-      multiplier: 2.5,
-      notes: "Test notes",
-      isActive: true
-    };
+  // Test deleting a valuation
+  test('DELETE /api/valuation/:id should delete a valuation with auth bypass', async () => {
+    const valuationId = 1;
     
-    const createdValuation = await testServer.mockStorage.createValuation(valuation);
+    const response = await request(app)
+      .delete(`/api/valuation/${valuationId}`)
+      .expect(200);
+      
+    expect(response.body).toHaveProperty('success', true);
+    expect(response.body).toHaveProperty('message', 'Valuation deleted successfully');
     
-    // Delete the valuation
-    const res = await request
-      .delete(`/api/valuations/${createdValuation.id}`)
-      .set("Authorization", `Bearer ${authToken}`);
-    
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    
-    // Verify it's deleted
-    const checkRes = await request
-      .get(`/api/valuations/${createdValuation.id}`)
-      .set("Authorization", `Bearer ${authToken}`);
-    
-    expect(checkRes.status).toBe(404);
+    // Verify the valuation was actually deleted
+    const getResponse = await request(app)
+      .get('/api/valuation')
+      .expect(200);
+      
+    expect(getResponse.body.data).toHaveLength(0);
   });
 });

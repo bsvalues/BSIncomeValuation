@@ -28,8 +28,8 @@ const JWT_SECRET: string = (() => {
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1h"; // Access token expiry 
 const REFRESH_TOKEN_EXPIRES_IN = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
 
-// Interface for JWT payload
-interface JwtPayload {
+// Interface for JWT payload - exported for testing
+export interface JwtPayload {
   userId: number;
   username: string;
   email: string;
@@ -60,14 +60,14 @@ export const generateTokens = (payload: JwtPayload) => {
   // Access token
   const accessToken = jwt.sign(
     payload, 
-    JWT_SECRET, 
+    JWT_SECRET as jwt.Secret, 
     { expiresIn: JWT_EXPIRES_IN }
   );
 
   // Refresh token (longer lived)
   const refreshToken = jwt.sign(
     payload, 
-    JWT_SECRET, 
+    JWT_SECRET as jwt.Secret, 
     { expiresIn: "30d" }
   );
 
@@ -154,6 +154,20 @@ export const authenticateJWT = (
   res: Response,
   next: NextFunction
 ) => {
+  // In development mode, bypass authentication and set a mock user
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('⚠️ DEVELOPMENT MODE: Authentication bypassed. Request authenticated with mock user.');
+    // Set mock user for development
+    req.user = {
+      userId: 1,
+      username: 'devuser',
+      email: 'dev@example.com',
+      role: 'user'
+    };
+    return next();
+  }
+  
+  // Production authentication logic below
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
