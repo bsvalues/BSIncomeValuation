@@ -5,6 +5,7 @@ import { ValuationForm } from '@/components/ValuationForm';
 import { ValuationComparison } from '@/components/ValuationComparison';
 import { ValuationAnalytics } from '@/components/ValuationAnalytics';
 import { ValuationReport } from '@/components/ValuationReport';
+import { ValuationTrendsForecast } from '@/components/ValuationTrendsForecast';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { Plus, FileText, BarChart2, ArrowUpDown, BarChart, FileCheck, ClipboardList } from 'lucide-react';
+import { Plus, FileText, BarChart2, ArrowUpDown, BarChart, FileCheck, ClipboardList, TrendingUp } from 'lucide-react';
 
 interface Income {
   id: number;
@@ -209,6 +210,10 @@ export function ValuationsPage() {
             <BarChart className="h-4 w-4 mr-2" />
             Analytics
           </TabsTrigger>
+          <TabsTrigger value="forecast">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Forecast
+          </TabsTrigger>
           <TabsTrigger value="report">
             <ClipboardList className="h-4 w-4 mr-2" />
             Reports
@@ -287,6 +292,10 @@ export function ValuationsPage() {
         
         <TabsContent value="analytics">
           <ValuationAnalytics valuations={valuations} incomes={incomes} />
+        </TabsContent>
+        
+        <TabsContent value="forecast">
+          <ValuationTrendsForecast valuations={valuations} />
         </TabsContent>
         
         <TabsContent value="report">
