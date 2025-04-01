@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Dashboard from "@/pages/Dashboard";
+import DashboardPage from "@/pages/DashboardPage";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ValuationForm from "@/pages/ValuationForm";
@@ -72,7 +73,7 @@ function Router() {
       
       {/* Protected routes */}
       <Route path="/dashboard">
-        {() => <PrivateRoute component={Dashboard} />}
+        {() => <PrivateRoute component={DashboardPage} />}
       </Route>
       <Route path="/calculator">
         {() => <PrivateRoute component={Calculator} />}
