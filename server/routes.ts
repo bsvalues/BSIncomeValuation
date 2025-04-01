@@ -26,7 +26,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   router.use("/dashboard", dashboardRouter);
   
   // Register valuation routes
-  router.use("/valuation", valuationRouter);
+  router.use("/valuations", valuationRouter);
   
   // Register AI agent routes
   router.use("/agents", agentRouter);

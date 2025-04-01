@@ -102,6 +102,11 @@ export default function Navbar() {
                     AI Insights
                   </div>
                 </Link>
+                <Link href="/valuations">
+                  <div className={`text-sm font-medium ${isActive('/valuations') ? 'text-white font-bold' : 'text-blue-100 hover:text-white'} transition cursor-pointer`}>
+                    Valuations
+                  </div>
+                </Link>
                 <Link href="/valuation/new">
                   <Button size="sm" className="bg-white text-blue-600 hover:bg-blue-50 font-semibold">
                     New Valuation
@@ -218,6 +223,14 @@ export default function Navbar() {
                       onClick={closeMenu}
                     >
                       AI Insights
+                    </div>
+                  </Link>
+                  <Link href="/valuations">
+                    <div 
+                      className={`px-2 py-1 rounded ${isActive('/valuations') ? 'bg-blue-700 text-white font-bold' : 'text-blue-100 hover:text-white'} cursor-pointer`}
+                      onClick={closeMenu}
+                    >
+                      Valuations
                     </div>
                   </Link>
                   <Link href="/valuation/new">

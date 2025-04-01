@@ -9,6 +9,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ValuationForm from "@/pages/ValuationForm";
 import ValuationResult from "@/pages/ValuationResult";
+import { ValuationsPage } from "@/pages/ValuationsPage";
 import Calculator from "@/pages/Calculator";
 import ProFormaCalculator from "@/pages/ProFormaCalculator";
 import DevDocs from "@/pages/DevDocs";
@@ -94,6 +95,10 @@ function Router() {
           const ValuationResultWithParams = () => <ValuationResult id={params.id} />;
           return <PrivateRoute component={ValuationResultWithParams} />;
         }}
+      </Route>
+      
+      <Route path="/valuations">
+        {() => <PrivateRoute component={ValuationsPage} />}
       </Route>
       
       {/* 404 page - must be last */}

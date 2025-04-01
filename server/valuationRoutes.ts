@@ -1,270 +1,354 @@
-import { Router, Request, Response } from "express";
-import { authenticateJWT } from "./auth";
-import { storage } from "./storage";
-import { insertIncomeSchema, insertValuationSchema } from "@shared/schema";
-import { ZodError } from "zod";
+import { Router, Request, Response } from 'express';
+import { db } from './db';
+import { valuations, incomes, users, insertValuationSchema } from '@shared/schema';
+import { eq, and, desc, sql } from 'drizzle-orm';
+import { asyncHandler } from './errorHandler';
+import { authenticateJWT } from './auth';
+import { ValidationError, NotFoundError } from './errorHandler';
+import { z } from 'zod';
 
 export const valuationRouter = Router();
 
-// Get all valuations for the authenticated user
-valuationRouter.get(
-  "/",
-  authenticateJWT,
-  async (req: Request & { user?: any }, res: Response) => {
-    try {
-      const userId = req.user.userId;
-      const valuations = await storage.getValuationsByUserId(userId);
-      
-      res.json({
-        success: true,
-        data: valuations
-      });
-    } catch (error) {
-      console.error("Error fetching valuations:", error);
-      res.status(500).json({
-        success: false,
-        error: {
-          message: "Failed to fetch valuations"
-        }
-      });
-    }
-  }
-);
+interface AuthenticatedRequest extends Request {
+  user?: {
+    userId: number;
+    username: string;
+    email: string;
+    role: string;
+  };
+}
 
-// Get a specific valuation by ID
+// Get all valuations for a user
 valuationRouter.get(
-  "/:id",
+  '/users/:userId/valuations',
   authenticateJWT,
-  async (req: Request & { user?: any }, res: Response) => {
-    try {
-      const valuationId = parseInt(req.params.id);
-      const valuation = await storage.getValuationById(valuationId);
-      
-      if (!valuation) {
-        return res.status(404).json({
-          success: false,
-          error: {
-            message: "Valuation not found"
-          }
-        });
-      }
-      
-      // Check if the valuation belongs to the authenticated user
-      if (valuation.userId !== req.user.userId) {
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const userId = parseInt(req.params.userId);
+    
+    // In production, check if the user is requesting their own data or has admin privileges
+    if (process.env.NODE_ENV === 'production') {
+      if (req.user?.userId !== userId && req.user?.role !== 'admin') {
         return res.status(403).json({
           success: false,
           error: {
-            message: "You don't have permission to access this valuation"
+            message: 'You do not have permission to access this resource'
           }
         });
       }
-      
-      res.json({
-        success: true,
-        data: valuation
-      });
-    } catch (error) {
-      console.error("Error fetching valuation:", error);
-      res.status(500).json({
-        success: false,
-        error: {
-          message: "Failed to fetch valuation"
-        }
-      });
     }
-  }
+    
+    const userValuations = await db
+      .select()
+      .from(valuations)
+      .where(eq(valuations.userId, userId))
+      .orderBy(desc(valuations.createdAt));
+    
+    res.json({
+      success: true,
+      data: userValuations,
+      count: userValuations.length
+    });
+  })
 );
 
-// Calculate a new valuation
-valuationRouter.post(
-  "/calculate",
+// Get a specific valuation
+valuationRouter.get(
+  '/:id',
   authenticateJWT,
-  async (req: Request & { user?: any }, res: Response) => {
-    try {
-      const userId = req.user.userId;
-      
-      // Calculate valuation based on user's income sources
-      const valuationResult = await storage.calculateValuation(userId);
-      
-      // Create a new valuation record
-      const newValuation = await storage.createValuation({
-        userId,
-        name: req.body.name || `Valuation ${new Date().toLocaleDateString()}`,
-        valuationAmount: valuationResult.totalValuation.toString(),
-        incomeBreakdown: JSON.stringify(valuationResult.incomeBreakdown),
-        multiplier: valuationResult.weightedMultiplier.toString(),
-        totalAnnualIncome: valuationResult.totalAnnualIncome.toString(),
-        notes: req.body.notes || ""
-      });
-      
-      res.status(201).json({
-        success: true,
-        data: {
-          valuation: newValuation,
-          calculationDetails: valuationResult
-        }
-      });
-    } catch (error) {
-      console.error("Error calculating valuation:", error);
-      res.status(500).json({
-        success: false,
-        error: {
-          message: "Failed to calculate valuation"
-        }
-      });
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const valuationId = parseInt(req.params.id);
+    
+    const valuation = await db
+      .select()
+      .from(valuations)
+      .where(eq(valuations.id, valuationId))
+      .limit(1);
+    
+    if (valuation.length === 0) {
+      throw new NotFoundError('Valuation not found');
     }
-  }
-);
-
-// Create a new income
-valuationRouter.post(
-  "/income",
-  authenticateJWT,
-  async (req: Request & { user?: any }, res: Response) => {
-    try {
-      const userId = req.user.userId;
-      
-      // Validate the income data
-      const incomeData = insertIncomeSchema.parse({
-        ...req.body,
-        userId
-      });
-      
-      // Create the income
-      const newIncome = await storage.createIncome(incomeData);
-      
-      res.status(201).json({
-        success: true,
-        data: newIncome
-      });
-    } catch (error) {
-      console.error("Error creating income:", error);
-      
-      if (error instanceof ZodError) {
-        return res.status(400).json({
+    
+    // In production, check if the user is requesting their own data or has admin privileges
+    if (process.env.NODE_ENV === 'production') {
+      if (req.user?.userId !== valuation[0].userId && req.user?.role !== 'admin') {
+        return res.status(403).json({
           success: false,
           error: {
-            message: "Invalid income data",
-            details: error.format()
+            message: 'You do not have permission to access this resource'
           }
         });
       }
-      
-      res.status(500).json({
-        success: false,
-        error: {
-          message: "Failed to create income"
-        }
-      });
     }
-  }
+    
+    res.json({
+      success: true,
+      data: valuation[0]
+    });
+  })
+);
+
+// Create a new valuation
+valuationRouter.post(
+  '/',
+  authenticateJWT,
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    // Validate the request body
+    const parseResult = insertValuationSchema.safeParse(req.body);
+    
+    if (!parseResult.success) {
+      throw new ValidationError('Invalid valuation data', parseResult.error.format());
+    }
+    
+    const validatedData = parseResult.data;
+    
+    // In production, ensure the user is creating a valuation for themselves
+    if (process.env.NODE_ENV === 'production') {
+      if (req.user?.userId !== validatedData.userId && req.user?.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: {
+            message: 'You can only create valuations for your own account'
+          }
+        });
+      }
+    }
+    
+    // Create the valuation
+    const [newValuation] = await db
+      .insert(valuations)
+      .values({
+        userId: validatedData.userId,
+        name: validatedData.name,
+        totalAnnualIncome: validatedData.totalAnnualIncome,
+        multiplier: validatedData.multiplier,
+        valuationAmount: validatedData.valuationAmount,
+        incomeBreakdown: validatedData.incomeBreakdown,
+        notes: validatedData.notes,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isActive: true
+      })
+      .returning();
+    
+    res.status(201).json({
+      success: true,
+      data: newValuation
+    });
+  })
 );
 
 // Update a valuation
 valuationRouter.put(
-  "/:id",
+  '/:id',
   authenticateJWT,
-  async (req: Request & { user?: any }, res: Response) => {
-    try {
-      const valuationId = parseInt(req.params.id);
-      const userId = req.user.userId;
-      
-      // Check if the valuation exists and belongs to the user
-      const existingValuation = await storage.getValuationById(valuationId);
-      
-      if (!existingValuation) {
-        return res.status(404).json({
-          success: false,
-          error: {
-            message: "Valuation not found"
-          }
-        });
-      }
-      
-      if (existingValuation.userId !== userId) {
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const valuationId = parseInt(req.params.id);
+    
+    // Check if the valuation exists
+    const existingValuation = await db
+      .select()
+      .from(valuations)
+      .where(eq(valuations.id, valuationId))
+      .limit(1);
+    
+    if (existingValuation.length === 0) {
+      throw new NotFoundError('Valuation not found');
+    }
+    
+    // In production, ensure the user is updating their own valuation
+    if (process.env.NODE_ENV === 'production') {
+      if (req.user?.userId !== existingValuation[0].userId && req.user?.role !== 'admin') {
         return res.status(403).json({
           success: false,
           error: {
-            message: "You don't have permission to update this valuation"
+            message: 'You can only update your own valuations'
           }
         });
       }
-      
-      // Update only the allowed fields
-      const updatedValuation = await storage.updateValuation(valuationId, {
-        notes: req.body.notes
-      });
-      
-      res.json({
-        success: true,
-        data: updatedValuation
-      });
-    } catch (error) {
-      console.error("Error updating valuation:", error);
-      res.status(500).json({
-        success: false,
-        error: {
-          message: "Failed to update valuation"
-        }
-      });
     }
-  }
+    
+    // Prepare the update data
+    const updateData: Record<string, any> = {
+      updatedAt: new Date()
+    };
+    
+    // Only include fields that are provided in the request
+    if (req.body.name) updateData.name = req.body.name;
+    if (req.body.totalAnnualIncome) updateData.totalAnnualIncome = req.body.totalAnnualIncome;
+    if (req.body.multiplier) updateData.multiplier = req.body.multiplier;
+    if (req.body.valuationAmount) updateData.valuationAmount = req.body.valuationAmount;
+    if (req.body.incomeBreakdown) updateData.incomeBreakdown = req.body.incomeBreakdown;
+    if (req.body.notes !== undefined) updateData.notes = req.body.notes;
+    if (req.body.isActive !== undefined) updateData.isActive = req.body.isActive;
+    
+    // Update the valuation
+    const [updatedValuation] = await db
+      .update(valuations)
+      .set(updateData)
+      .where(eq(valuations.id, valuationId))
+      .returning();
+    
+    res.json({
+      success: true,
+      data: updatedValuation
+    });
+  })
 );
 
-// Delete a valuation
+// Soft delete a valuation (set isActive to false)
 valuationRouter.delete(
-  "/:id",
+  '/:id',
   authenticateJWT,
-  async (req: Request & { user?: any }, res: Response) => {
-    try {
-      const valuationId = parseInt(req.params.id);
-      const userId = req.user.userId;
-      
-      // Check if the valuation exists and belongs to the user
-      const existingValuation = await storage.getValuationById(valuationId);
-      
-      if (!existingValuation) {
-        return res.status(404).json({
-          success: false,
-          error: {
-            message: "Valuation not found"
-          }
-        });
-      }
-      
-      if (existingValuation.userId !== userId) {
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const valuationId = parseInt(req.params.id);
+    
+    // Check if the valuation exists
+    const existingValuation = await db
+      .select()
+      .from(valuations)
+      .where(eq(valuations.id, valuationId))
+      .limit(1);
+    
+    if (existingValuation.length === 0) {
+      throw new NotFoundError('Valuation not found');
+    }
+    
+    // In production, ensure the user is deleting their own valuation
+    if (process.env.NODE_ENV === 'production') {
+      if (req.user?.userId !== existingValuation[0].userId && req.user?.role !== 'admin') {
         return res.status(403).json({
           success: false,
           error: {
-            message: "You don't have permission to delete this valuation"
+            message: 'You can only delete your own valuations'
           }
         });
       }
+    }
+    
+    // Soft delete the valuation by setting isActive to false
+    await db
+      .update(valuations)
+      .set({
+        isActive: false,
+        updatedAt: new Date()
+      })
+      .where(eq(valuations.id, valuationId));
+    
+    res.json({
+      success: true,
+      message: 'Valuation successfully deleted'
+    });
+  })
+);
+
+// Compare two or more valuations
+valuationRouter.get(
+  '/compare',
+  authenticateJWT,
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    // Get IDs from query string
+    const idParam = req.query.ids as string;
+    
+    if (!idParam) {
+      throw new ValidationError('No valuation IDs provided');
+    }
+    
+    const ids = idParam.split(',').map(id => parseInt(id.trim()));
+    
+    if (ids.length < 2) {
+      throw new ValidationError('At least two valuation IDs are required for comparison');
+    }
+    
+    // Fetch the valuations
+    const valuationsToCompare = await db
+      .select()
+      .from(valuations)
+      .where(sql`${valuations.id} IN (${ids.join(',')})`);
+    
+    if (valuationsToCompare.length < 2) {
+      throw new ValidationError('Could not find all specified valuations');
+    }
+    
+    // In production, ensure the user owns the valuations or has admin privileges
+    if (process.env.NODE_ENV === 'production') {
+      const hasPermission = valuationsToCompare.every(
+        v => v.userId === req.user?.userId || req.user?.role === 'admin'
+      );
       
-      // Delete the valuation
-      const success = await storage.deleteValuation(valuationId);
-      
-      if (success) {
-        res.json({
-          success: true,
-          message: "Valuation deleted successfully"
-        });
-      } else {
-        res.status(500).json({
+      if (!hasPermission) {
+        return res.status(403).json({
           success: false,
           error: {
-            message: "Failed to delete valuation"
+            message: 'You do not have permission to access all of these valuations'
           }
         });
       }
-    } catch (error) {
-      console.error("Error deleting valuation:", error);
-      res.status(500).json({
-        success: false,
-        error: {
-          message: "Failed to delete valuation"
-        }
-      });
     }
-  }
+    
+    // Sort by created date
+    valuationsToCompare.sort((a, b) => {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+    
+    // Compare the first and last valuations (assuming chronological comparison)
+    const baseValuation = valuationsToCompare[0];
+    const targetValuation = valuationsToCompare[valuationsToCompare.length - 1];
+    
+    // Calculate differences
+    const incomeDifference = (
+      parseFloat(targetValuation.totalAnnualIncome) - parseFloat(baseValuation.totalAnnualIncome)
+    ).toFixed(2);
+    
+    const multiplierDifference = (
+      parseFloat(targetValuation.multiplier) - parseFloat(baseValuation.multiplier)
+    ).toFixed(2);
+    
+    const valuationDifference = (
+      parseFloat(targetValuation.valuationAmount) - parseFloat(baseValuation.valuationAmount)
+    ).toFixed(2);
+    
+    const percentageChange = (
+      (parseFloat(valuationDifference) / parseFloat(baseValuation.valuationAmount)) * 100
+    ).toFixed(2);
+    
+    // Compare income breakdown if available
+    let incomeChanges: Record<string, string> | undefined;
+    
+    if (baseValuation.incomeBreakdown && targetValuation.incomeBreakdown) {
+      try {
+        const baseBreakdown = JSON.parse(baseValuation.incomeBreakdown);
+        const targetBreakdown = JSON.parse(targetValuation.incomeBreakdown);
+        
+        incomeChanges = {};
+        
+        // Combine all income sources from both breakdowns
+        const allSources = Array.from(
+          new Set([...Object.keys(baseBreakdown), ...Object.keys(targetBreakdown)])
+        );
+        
+        // Calculate changes for each source
+        allSources.forEach(source => {
+          const baseAmount = baseBreakdown[source] || 0;
+          const targetAmount = targetBreakdown[source] || 0;
+          incomeChanges![source] = (targetAmount - baseAmount).toFixed(2);
+        });
+      } catch (error) {
+        console.error('Error parsing income breakdown:', error);
+      }
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        valuations: [baseValuation, targetValuation],
+        comparison: {
+          incomeDifference,
+          multiplierDifference,
+          valuationDifference,
+          percentageChange,
+          ...(incomeChanges && { incomeChanges })
+        }
+      }
+    });
+  })
 );
