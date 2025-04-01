@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useLocation } from 'wouter';
 import { ValuationForm } from '@/components/ValuationForm';
 import { ValuationComparison } from '@/components/ValuationComparison';
+import { ValuationAnalytics } from '@/components/ValuationAnalytics';
+import { ValuationReport } from '@/components/ValuationReport';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -11,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { Plus, FileText, BarChart2, ArrowUpDown } from 'lucide-react';
+import { Plus, FileText, BarChart2, ArrowUpDown, BarChart, FileCheck, ClipboardList } from 'lucide-react';
 
 interface Income {
   id: number;
@@ -51,6 +53,7 @@ export function ValuationsPage() {
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('valuations');
+  const [activeValuation, setActiveValuation] = useState<Valuation | null>(null);
   
   // Current user ID (hardcoded for development)
   const userId = 1;
@@ -193,7 +196,7 @@ export function ValuationsPage() {
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
+        <TabsList className="grid grid-cols-4">
           <TabsTrigger value="valuations">
             <FileText className="h-4 w-4 mr-2" />
             My Valuations
@@ -201,6 +204,14 @@ export function ValuationsPage() {
           <TabsTrigger value="compare">
             <ArrowUpDown className="h-4 w-4 mr-2" />
             Compare
+          </TabsTrigger>
+          <TabsTrigger value="analytics">
+            <BarChart className="h-4 w-4 mr-2" />
+            Analytics
+          </TabsTrigger>
+          <TabsTrigger value="report">
+            <ClipboardList className="h-4 w-4 mr-2" />
+            Reports
           </TabsTrigger>
         </TabsList>
         
@@ -272,6 +283,86 @@ export function ValuationsPage() {
         
         <TabsContent value="compare">
           <ValuationComparison valuations={valuations} />
+        </TabsContent>
+        
+        <TabsContent value="analytics">
+          <ValuationAnalytics valuations={valuations} incomes={incomes} />
+        </TabsContent>
+        
+        <TabsContent value="report">
+          {valuations.length > 0 ? (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Valuation Reports</CardTitle>
+                  <CardDescription>
+                    Generate detailed reports for your valuations
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Select a valuation</h3>
+                      <div className="space-y-2">
+                        {valuations.map((valuation) => (
+                          <div 
+                            key={valuation.id}
+                            className="flex items-center justify-between bg-muted p-3 rounded-md cursor-pointer hover:bg-muted/80"
+                            onClick={() => setActiveValuation(valuation)}
+                          >
+                            <div>
+                              <p className="font-medium">{valuation.name}</p>
+                              <p className="text-sm text-muted-foreground">{formatDate(valuation.createdAt)}</p>
+                            </div>
+                            <div className="font-bold">{formatCurrency(parseFloat(valuation.valuationAmount))}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Report options</h3>
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                          Select a valuation from the list to generate a detailed report with analytics,
+                          insights, and recommendations.
+                        </p>
+                        <div>
+                          <h4 className="text-sm font-medium mb-1">Report includes:</h4>
+                          <ul className="list-disc list-inside text-sm pl-2 space-y-1">
+                            <li>Valuation summary with key metrics</li>
+                            <li>Income analysis with breakdowns</li>
+                            <li>Historical performance tracking</li>
+                            <li>AI-powered insights and recommendations</li>
+                            <li>Exportable PDF format</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {activeValuation && (
+                <ValuationReport 
+                  valuation={activeValuation} 
+                  valuations={valuations} 
+                  incomes={incomes} 
+                />
+              )}
+            </div>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>No Valuations Available</CardTitle>
+                <CardDescription>
+                  Create at least one valuation to generate reports
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>You need to create valuations before you can generate reports. Click the "Create Valuation" button to get started.</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
