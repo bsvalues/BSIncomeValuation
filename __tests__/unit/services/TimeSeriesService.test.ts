@@ -1,5 +1,58 @@
-import { TimeSeriesService } from '../../../client/src/services/TimeSeriesService';
+import { TimeSeriesService, ForecastResult } from '../../../client/src/services/TimeSeriesService';
 import { Income } from '../../../shared/schema';
+
+// Mock the BaseService post method
+jest.mock('../../../client/src/services/BaseService', () => ({
+  BaseService: {
+    post: jest.fn().mockImplementation(async (endpoint, data, errorMessage) => {
+      // Return appropriate mock responses based on the endpoint
+      if (endpoint === '/api/timeseries/forecast') {
+        return {
+          values: [10500, 11000, 11500, 12000, 12500, 13000],
+          dates: [
+            new Date().toISOString(),
+            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+            new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+            new Date(Date.now() + 120 * 24 * 60 * 60 * 1000).toISOString(),
+            new Date(Date.now() + 150 * 24 * 60 * 60 * 1000).toISOString()
+          ],
+          lowerBound: [9500, 10000, 10500, 11000, 11500, 12000],
+          upperBound: [11500, 12000, 12500, 13000, 13500, 14000],
+          method: 'arima',
+          confidenceLevel: 0.95
+        };
+      } else if (endpoint === '/api/timeseries/seasonality') {
+        return {
+          hasSeasonal: true,
+          seasonalPeriod: 12,
+          seasonalStrength: 0.65,
+          pValue: 0.01
+        };
+      } else if (endpoint === '/api/timeseries/decompose') {
+        const mockSeries = Array(data.data.length).fill(0);
+        return {
+          trend: mockSeries.map((_, i) => 10000 + i * 100),
+          seasonal: mockSeries.map((_, i) => Math.sin(i / 6 * Math.PI) * 1000),
+          residual: mockSeries.map(() => (Math.random() - 0.5) * 200),
+          dates: data.data.map(d => d.date)
+        };
+      } else if (endpoint === '/api/timeseries/trend') {
+        return {
+          direction: 'up',
+          strength: 0.8,
+          changePct: 0.15
+        };
+      } else if (endpoint === '/api/timeseries/description') {
+        return {
+          description: 'A detailed forecast description showing an upward trend with 95% confidence intervals.'
+        };
+      }
+      
+      throw new Error(`Unexpected endpoint: ${endpoint}`);
+    })
+  }
+}));
 
 // Test data helper function to create income time series
 function createTestIncomeTimeSeries(
