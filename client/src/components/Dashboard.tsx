@@ -523,7 +523,7 @@ export const Dashboard = ({ valuations, incomes }: DashboardProps) => {
                   </div>
                 ) : anomalyDetection?.insights?.length > 0 ? (
                   <>
-                    <p className="mb-2">{anomalyDetection.summary}</p>
+                    <p className="mb-2">{typeof anomalyDetection.summary === 'string' ? anomalyDetection.summary : 'Analysis of valuation data shows potential patterns and outliers.'}</p>
                     <ul className="list-disc pl-5 space-y-1">
                       {anomalyDetection.insights.map((insight: string, index: number) => (
                         <li key={index}>{insight}</li>

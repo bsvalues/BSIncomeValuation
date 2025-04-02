@@ -215,13 +215,17 @@ export const ValuationReport: React.FC<ValuationReportProps> = ({ valuation, val
               
               {valuationSummary && (
                 <div className="mt-6">
-                  <p className="mb-4">{typeof valuationSummary.text === 'string' ? valuationSummary.text : 'Valuation performance has shown positive growth trends over time.'}</p>
+                  <p className="mb-4">
+                    {typeof valuationSummary?.text === 'string' 
+                      ? valuationSummary.text 
+                      : 'Valuation performance has shown positive growth trends over time.'}
+                  </p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                     <div>
                       <h4 className="font-semibold mb-2 text-sm uppercase text-muted-foreground">Highlights</h4>
                       <ul className="list-disc pl-5 space-y-1">
-                        {Array.isArray(valuationSummary.highlights) ? 
+                        {Array.isArray(valuationSummary?.highlights) ? 
                           valuationSummary.highlights.map((highlight, index) => (
                             <li key={index}>{highlight}</li>
                           )) : 
@@ -233,7 +237,7 @@ export const ValuationReport: React.FC<ValuationReportProps> = ({ valuation, val
                     <div>
                       <h4 className="font-semibold mb-2 text-sm uppercase text-muted-foreground">Key Trends</h4>
                       <ul className="list-disc pl-5 space-y-1">
-                        {Array.isArray(valuationSummary.trends) ?
+                        {Array.isArray(valuationSummary?.trends) ?
                           valuationSummary.trends.map((trend, index) => (
                             <li key={index}>{trend}</li>
                           )) :
@@ -375,7 +379,7 @@ export const ValuationReport: React.FC<ValuationReportProps> = ({ valuation, val
               {anomalyData && (
                 <div>
                   <h3 className="text-lg font-medium mb-3">Insights</h3>
-                  <p className="mb-4">{anomalyData.summary}</p>
+                  <p className="mb-4">{typeof anomalyData.summary === 'string' ? anomalyData.summary : 'Analysis of valuation data shows potential patterns and outliers.'}</p>
                   
                   <ul className="list-disc pl-5 space-y-1">
                     {anomalyData.insights.map((insight, index) => (

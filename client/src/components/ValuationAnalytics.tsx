@@ -524,7 +524,7 @@ export const ValuationAnalytics: React.FC<ValuationAnalyticsProps> = ({ valuatio
                 <CardContent>
                   {anomalyData ? (
                     <div className="space-y-4">
-                      <p>{anomalyData.summary}</p>
+                      <p>{typeof anomalyData.summary === 'string' ? anomalyData.summary : 'Analysis of valuation data shows potential patterns and outliers.'}</p>
                       
                       <div className="mt-4">
                         <h4 className="font-semibold mb-2">Key Insights</h4>
