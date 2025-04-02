@@ -10,6 +10,7 @@ import { valuationRouter } from "./valuationRoutes";
 import { agentRouter } from "./agentRoutes";
 import { devAuthRouter } from "./devAuthRoutes";
 import { timeSeriesRouter } from "./timeSeriesRoutes";
+import { patternRecognitionRouter } from "./patternRecognitionRoutes";
 import { asyncHandler, NotFoundError, ValidationError } from "./errorHandler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -37,6 +38,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register time series routes
   router.use("/timeseries", timeSeriesRouter);
+  
+  // Register pattern recognition routes
+  router.use("/patterns", patternRecognitionRouter);
   
   // Income multipliers route
   router.get("/multipliers", asyncHandler(async (req: Request, res: Response) => {
