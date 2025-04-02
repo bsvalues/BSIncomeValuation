@@ -91,6 +91,7 @@ export const incomes = pgTable("incomes", {
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   frequency: text("frequency").notNull(), // monthly, yearly, etc.
   description: text("description"),
+  date: timestamp("date"),  // Specific date this income was received
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -196,6 +197,7 @@ export const insertIncomeSchema = createInsertSchema(incomes)
     amount: true,
     frequency: true,
     description: true,
+    date: true,
   })
   .extend({
     createdAt: z.date().optional(),
@@ -215,6 +217,7 @@ export const insertIncomeSchema = createInsertSchema(incomes)
     }),
     description: z.string().max(500, "Description cannot exceed 500 characters").optional()
       .transform(val => val === "" ? null : val?.trim()),
+    date: z.date().optional().default(() => new Date()),
   });
 
 export const insertValuationSchema = createInsertSchema(valuations)

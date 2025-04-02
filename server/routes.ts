@@ -9,6 +9,7 @@ import { dashboardRouter } from "./dashboardRoutes";
 import { valuationRouter } from "./valuationRoutes";
 import { agentRouter } from "./agentRoutes";
 import { devAuthRouter } from "./devAuthRoutes";
+import { timeSeriesRouter } from "./timeSeriesRoutes";
 import { asyncHandler, NotFoundError, ValidationError } from "./errorHandler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -33,6 +34,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register dev auth routes (only available in development)
   router.use("/dev-auth", devAuthRouter);
+  
+  // Register time series routes
+  router.use("/timeseries", timeSeriesRouter);
   
   // Income multipliers route
   router.get("/multipliers", asyncHandler(async (req: Request, res: Response) => {
