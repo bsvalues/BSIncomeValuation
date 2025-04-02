@@ -11,6 +11,7 @@ import Register from "@/pages/Register";
 import ValuationForm from "@/pages/ValuationForm";
 import ValuationResult from "@/pages/ValuationResult";
 import { ValuationsPage } from "@/pages/ValuationsPage";
+import ReportsPage from "@/pages/ReportsPage";
 import Calculator from "@/pages/Calculator";
 import ProFormaCalculator from "@/pages/ProFormaCalculator";
 import DevDocs from "@/pages/DevDocs";
@@ -100,6 +101,10 @@ function Router() {
       
       <Route path="/valuations">
         {() => <PrivateRoute component={ValuationsPage} />}
+      </Route>
+      
+      <Route path="/reports">
+        {() => <PrivateRoute component={ReportsPage} />}
       </Route>
       
       {/* 404 page - must be last */}

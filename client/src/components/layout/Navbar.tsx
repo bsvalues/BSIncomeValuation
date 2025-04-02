@@ -107,6 +107,11 @@ export default function Navbar() {
                     Valuations
                   </div>
                 </Link>
+                <Link href="/reports">
+                  <div className={`text-sm font-medium ${isActive('/reports') ? 'text-white font-bold' : 'text-blue-100 hover:text-white'} transition cursor-pointer`}>
+                    Reports
+                  </div>
+                </Link>
                 <Link href="/valuation/new">
                   <Button size="sm" className="bg-white text-blue-600 hover:bg-blue-50 font-semibold">
                     New Valuation
@@ -231,6 +236,14 @@ export default function Navbar() {
                       onClick={closeMenu}
                     >
                       Valuations
+                    </div>
+                  </Link>
+                  <Link href="/reports">
+                    <div 
+                      className={`px-2 py-1 rounded ${isActive('/reports') ? 'bg-blue-700 text-white font-bold' : 'text-blue-100 hover:text-white'} cursor-pointer`}
+                      onClick={closeMenu}
+                    >
+                      Reports
                     </div>
                   </Link>
                   <Link href="/valuation/new">

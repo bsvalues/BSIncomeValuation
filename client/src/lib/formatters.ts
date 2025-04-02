@@ -1,69 +1,62 @@
 /**
+ * Utility functions for formatting various data types
+ */
+
+/**
  * Format a number as currency
- * @param amount - The amount to format
- * @param currency - The currency code (defaults to USD)
+ * @param amount The number to format
+ * @param currency The currency code (default: USD)
  * @returns Formatted currency string
  */
 export const formatCurrency = (amount: number, currency = 'USD'): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   }).format(amount);
 };
 
 /**
- * Format a number as a percentage
- * @param value - The decimal value to format (e.g., 0.25 for 25%)
- * @param decimalPlaces - Number of decimal places to show
+ * Format a date in a human-readable format
+ * @param date The date to format
+ * @param format The format to use (defaults to US style)
+ * @returns Formatted date string
+ */
+export const formatDate = (date: Date | string | number): string => {
+  // Convert to Date if not already
+  const dateObj = date instanceof Date ? date : new Date(date);
+  
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  }).format(dateObj);
+};
+
+/**
+ * Format a percentage
+ * @param value The percentage value (0-1)
+ * @param decimalPlaces The number of decimal places to include
  * @returns Formatted percentage string
  */
-export const formatPercentage = (value: number, decimalPlaces = 2): string => {
+export const formatPercentage = (value: number, decimalPlaces = 1): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'percent',
     minimumFractionDigits: decimalPlaces,
-    maximumFractionDigits: decimalPlaces,
+    maximumFractionDigits: decimalPlaces
   }).format(value);
 };
 
 /**
- * Format a date
- * @param date - The date to format
- * @param options - Intl.DateTimeFormat options
- * @returns Formatted date string
- */
-export const formatDate = (date: Date | string, options?: Intl.DateTimeFormatOptions): string => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  const defaultOptions: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  };
-  
-  return new Intl.DateTimeFormat('en-US', options || defaultOptions).format(dateObj);
-};
-
-/**
- * Format a number with commas
- * @param value - The number to format
- * @param decimalPlaces - Number of decimal places to show
+ * Format a number with commas and decimal places
+ * @param value The number to format
+ * @param decimalPlaces The number of decimal places to include
  * @returns Formatted number string
  */
-export const formatNumber = (value: number, decimalPlaces = 2): string => {
+export const formatNumber = (value: number, decimalPlaces = 0): string => {
   return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: decimalPlaces,
-    maximumFractionDigits: decimalPlaces,
+    maximumFractionDigits: decimalPlaces
   }).format(value);
-};
-
-/**
- * Convert a string to title case
- * @param str - The string to convert
- * @returns The title-cased string
- */
-export const toTitleCase = (str: string): string => {
-  return str
-    .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
 };
