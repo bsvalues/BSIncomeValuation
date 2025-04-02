@@ -1,7 +1,31 @@
-import { pgTable, text, serial, integer, numeric, timestamp, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, numeric, timestamp, boolean, pgEnum, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
+
+// Widget position schema
+export const WidgetPositionSchema = z.object({
+  x: z.number().int().min(0),
+  y: z.number().int().min(0),
+  w: z.number().int().min(1),
+  h: z.number().int().min(1)
+});
+
+// Widget schema
+export const WidgetSchema = z.object({
+  id: z.string().optional(),
+  type: z.string(),
+  title: z.string(),
+  position: WidgetPositionSchema,
+  settings: z.record(z.any()).optional()
+});
+
+// Dashboard schema
+export const DashboardSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  widgets: z.array(WidgetSchema)
+});
 
 // Income multipliers configuration
 export const incomeMultipliers = pgTable("income_multipliers", {
@@ -85,10 +109,22 @@ export const valuations = pgTable("valuations", {
   isActive: boolean("is_active").default(true).notNull(),
 });
 
+// Dashboard model
+export const dashboards = pgTable("dashboards", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  widgets: jsonb("widgets").notNull().default([]),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   incomes: many(incomes),
   valuations: many(valuations),
+  dashboards: many(dashboards),
 }));
 
 export const incomesRelations = relations(incomes, ({ one }) => ({
@@ -101,6 +137,13 @@ export const incomesRelations = relations(incomes, ({ one }) => ({
 export const valuationsRelations = relations(valuations, ({ one }) => ({
   user: one(users, {
     fields: [valuations.userId],
+    references: [users.id],
+  }),
+}));
+
+export const dashboardsRelations = relations(dashboards, ({ one }) => ({
+  user: one(users, {
+    fields: [dashboards.userId],
     references: [users.id],
   }),
 }));
@@ -265,3 +308,25 @@ export type InsertIncomeMultiplier = z.infer<typeof insertIncomeMultiplierSchema
 
 export type DevAuthToken = typeof devAuthTokens.$inferSelect;
 export type CreateDevAuthToken = z.infer<typeof createDevAuthTokenSchema>;
+
+// Dashboard schema
+export const insertDashboardSchema = createInsertSchema(dashboards)
+  .pick({
+    userId: true,
+    name: true,
+    description: true,
+    widgets: true,
+  })
+  .extend({
+    userId: z.number().int().positive("User ID must be a positive integer"),
+    name: z.string().min(1, "Name is required").max(100, "Name cannot exceed 100 characters")
+      .trim(),
+    description: z.string().max(500, "Description cannot exceed 500 characters").optional()
+      .transform(val => val === "" ? null : val?.trim()),
+    widgets: z.array(WidgetSchema).default([])
+  });
+
+export type Dashboard = typeof dashboards.$inferSelect;
+export type InsertDashboard = z.infer<typeof insertDashboardSchema>;
+export type WidgetPosition = z.infer<typeof WidgetPositionSchema>;
+export type Widget = z.infer<typeof WidgetSchema>;
