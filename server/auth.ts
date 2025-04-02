@@ -4,7 +4,7 @@ import { users, authTokens } from "@shared/schema";
 import { eq, and, gt } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { config } from "./config";
+import config from "./config";
 import crypto from 'crypto';
 
 /**
@@ -13,7 +13,7 @@ import crypto from 'crypto';
  */
 const JWT_SECRET = (() => {
   // Use JWT_SECRET from environment or config
-  const envSecret = process.env.JWT_SECRET || config.auth.jwt.secret;
+  const envSecret = process.env.JWT_SECRET || process.env.JWT_SECRET;
   if (envSecret) return envSecret;
   
   if (process.env.NODE_ENV === 'production') {
@@ -27,7 +27,7 @@ const JWT_SECRET = (() => {
 })();
 
 // Token expiration settings
-const JWT_EXPIRES_IN = config.auth.jwt.expiresIn || "1h"; 
+const JWT_EXPIRES_IN = config.auth.jwtExpiresIn || "1h"; 
 const REFRESH_TOKEN_EXPIRES_IN = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
 
 // Interface for JWT payload
@@ -60,17 +60,20 @@ export const comparePassword = async (
  * Generate access and refresh tokens for a user
  */
 export const generateTokens = (payload: JwtPayload) => {
+  // Use Buffer to fix typing issues with jwt.sign
+  const jwtSecretBuffer = Buffer.from(JWT_SECRET, 'utf-8');
+  
   // Access token with shorter expiration
   const accessToken = jwt.sign(
     payload,
-    JWT_SECRET,
+    jwtSecretBuffer,
     { expiresIn: JWT_EXPIRES_IN }
   );
 
   // Refresh token with longer expiration
   const refreshToken = jwt.sign(
     payload,
-    JWT_SECRET,
+    jwtSecretBuffer,
     { expiresIn: "30d" }
   );
 
@@ -98,7 +101,8 @@ export const verifyRefreshToken = async (token: string) => {
     let decoded: JwtPayload;
     
     try {
-      decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+      const jwtSecretBuffer = Buffer.from(JWT_SECRET, 'utf-8');
+      decoded = jwt.verify(token, jwtSecretBuffer) as JwtPayload;
     } catch (jwtError) {
       console.warn('JWT verification failed:', jwtError instanceof Error ? jwtError.message : 'Unknown error');
       return null;
@@ -147,7 +151,7 @@ export const authenticateJWT = (
   next: NextFunction
 ) => {
   // Check if authentication is disabled in config or should be bypassed in dev mode
-  if (!config.auth.enabled || config.auth.devBypass) {
+  if (!config.auth.enabled || config.auth.bypassInDev) {
     console.log('⚠️ Authentication bypassed per configuration. Request authenticated with mock user.');
     // Set mock user for development
     req.user = {
@@ -193,7 +197,8 @@ export const authenticateJWT = (
   try {
     // Verify the token
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+      const jwtSecretBuffer = Buffer.from(JWT_SECRET, 'utf-8');
+      const decoded = jwt.verify(token, jwtSecretBuffer) as JwtPayload;
       req.user = decoded;
       next();
     } catch (jwtError) {
