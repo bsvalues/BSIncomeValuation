@@ -24,7 +24,34 @@ The Core serves as the high-level orchestrator for the entire system. It provide
 - System-wide event handling
 - Health check coordination
 
-### 3. Specialized Agents
+### 3. Command Structure Agents
+
+#### Architect Prime Agent
+Maintains architectural vision and system integrity:
+- Architectural review and guidance
+- System vision maintenance
+- Architecture diagram generation
+- High-level architectural decisions
+- Vision statement broadcasting
+
+#### Integration Coordinator Agent
+Manages cross-component integration and contracts:
+- API contract validation
+- Integration point monitoring
+- Dependency mapping
+- Cross-component testing
+- Integration issue resolution
+- Dependency diagram generation
+
+#### Component Lead Agents (Planned)
+Will provide domain-specific leadership for specialized areas:
+- Domain expertise coordination
+- Team oversight and direction
+- Best practices enforcement
+- Output validation
+- Strategic direction implementation
+
+### 4. Operational Agents
 
 #### Valuation Agent
 Specialized in calculating property values based on income data and market conditions:
@@ -52,9 +79,46 @@ Generates insights and reports based on valuation data:
 Agents communicate through a standardized message protocol defined in `shared/agentProtocol.ts`. Each message includes:
 - Unique message and correlation IDs
 - Source and target agent identifiers
-- Event type (e.g., STATUS_UPDATE, COMMAND, ERROR)
+- Event type (e.g., STATUS_UPDATE, COMMAND, ASSISTANCE_REQUESTED)
 - Payload with event-specific data
 - Timestamp
+
+### Key Event Types
+
+#### STATUS_UPDATE
+Agents report their status to monitor system health:
+- Current operational state
+- Performance metrics
+- Resource utilization
+- Recent activity summary
+
+#### COMMAND
+Used to trigger specific actions in target agents:
+- Direct instructions to execute a specific function
+- Configuration updates
+- Task assignments with parameters
+- System-wide directives
+
+#### ASSISTANCE_REQUESTED
+Allows agents to request help from other agents:
+- Problem description
+- Context information
+- Requested agent capabilities
+- Priority level
+
+#### ASSISTANCE_RESPONSE
+Provides help in response to assistance requests:
+- Guidance and solutions
+- Related reference materials
+- Action recommendations
+- Follow-up instructions
+
+#### BROADCAST
+System-wide announcements to all agents:
+- Vision statements
+- Priority changes
+- System status notifications
+- Global configuration updates
 
 ## API Endpoints
 
@@ -91,8 +155,21 @@ The Multi-Agent System is integrated with the rest of the application through:
 ## Future Enhancements
 
 Planned enhancements to the Multi-Agent System include:
-- Expanded agent capabilities
-- More sophisticated learning algorithms
-- Enhanced collaboration between agents
-- Natural language interface improvements
-- Additional specialized agents for specific tasks
+
+### Command Structure Expansion
+- Implementation of Component Lead Agents for domain-specific leadership
+- Automated testing agents for system validation
+- Self-healing mechanisms for automatic recovery from failures
+- Dynamic configuration for real-time agent behavior adjustment
+
+### Intelligence Improvements
+- Enhanced learning through prioritized experience replay
+- More sophisticated collaboration between agents through the ASSISTANCE_RESPONSE protocol
+- Natural language interface improvements for user interaction
+- Advanced pattern recognition for financial data analysis
+
+### Infrastructure Enhancements
+- Visualization tools for system monitoring
+- Metrics dashboard for agent performance tracking
+- Distributed deployment support for scalability
+- Enhanced security protocols for data protection

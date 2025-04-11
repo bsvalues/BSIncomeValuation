@@ -98,7 +98,7 @@ export class IntegrationCoordinatorAgent extends BaseAgent {
    * @param config Configuration options
    */
   constructor(agentId: string, config: Partial<IntegrationCoordinatorConfig> = {}) {
-    super(agentId, AgentType.SYSTEM); // Integration Coordinator is a SYSTEM type agent
+    super(agentId, AgentType.INTEGRATION_COORDINATOR); // Integration Coordinator has its own agent type
     
     // Initialize configuration
     this.config = {

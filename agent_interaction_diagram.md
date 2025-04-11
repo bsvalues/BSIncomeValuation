@@ -1,80 +1,133 @@
-# Agent System Interaction Diagram
+# Agent Interaction Diagram
 
-The following diagram illustrates how the components of the Multi-Agent System interact with each other:
+This document visualizes the interaction patterns between different agents in the command structure of the Benton County Property Valuation System.
+
+## Command Structure Interaction Flow
 
 ```mermaid
-graph TB
-    Client[Client API Request]
-    API[API Layer]
-    MCP[Master Control Program]
-    Core[Core Orchestrator]
-    ValAgent[Valuation Agent]
-    DataAgent[Data Cleaner Agent]
-    RepAgent[Reporting Agent]
-    ReplayBuffer[Replay Buffer]
-    DB[(Database)]
+sequenceDiagram
+    participant Client as Client API
+    participant MCP as Master Control Program
+    participant Core as Core Orchestrator
+    participant ArchPrime as Architect Prime
+    participant IntCoord as Integration Coordinator
+    participant ValAgent as Valuation Agent
+    participant DataAgent as Data Cleaner Agent
+    participant RepAgent as Reporting Agent
     
-    Client -->|1. Request| API
-    API -->|2. Process Request| MCP
-    MCP -->|3. Find Capable Agent| MCP
-    MCP -->|4. Route Message| ValAgent
-    MCP -->|4. Route Message| DataAgent
-    MCP -->|4. Route Message| RepAgent
-    ValAgent -->|5. Process Request| ValAgent
-    ValAgent -->|6. DB Operations| DB
-    ValAgent -->|7. Request Data Cleaning| MCP
-    MCP -->|8. Route Cleaning Request| DataAgent
-    DataAgent -->|9. Clean Data| DataAgent
-    DataAgent -->|10. Return Cleaned Data| MCP
-    MCP -->|11. Route Cleaned Data| ValAgent
-    ValAgent -->|12. Complete Valuation| ValAgent
-    ValAgent -->|13. Return Result| MCP
-    MCP -->|14. Store Experience| ReplayBuffer
-    MCP -->|15. Return Result| API
-    API -->|16. Response| Client
-    Core -->|System Monitoring| MCP
-    Core -->|Agent Registration| MCP
-    Core -->|Health Checks| ValAgent
-    Core -->|Health Checks| DataAgent
-    Core -->|Health Checks| RepAgent
+    %% System Initialization
+    Client->>MCP: Start System
+    MCP->>Core: Initialize System
+    Core->>MCP: Register Self
+    Core->>MCP: Register Agents
+    Core->>MCP: Broadcast Announcement
+    MCP-->>ArchPrime: Forward Broadcast
+    MCP-->>IntCoord: Forward Broadcast
+    MCP-->>ValAgent: Forward Broadcast
+    MCP-->>DataAgent: Forward Broadcast
+    MCP-->>RepAgent: Forward Broadcast
     
-    classDef client fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef system fill:#bbf,stroke:#33f,stroke-width:2px;
-    classDef agent fill:#bfb,stroke:#3a3,stroke-width:2px;
-    classDef storage fill:#ffb,stroke:#aa3,stroke-width:2px;
+    %% Vision Statement Broadcast
+    ArchPrime->>MCP: Broadcast Vision
+    MCP-->>IntCoord: Forward Vision
+    MCP-->>ValAgent: Forward Vision
+    MCP-->>DataAgent: Forward Vision
+    MCP-->>RepAgent: Forward Vision
     
-    class Client client;
-    class API,MCP,Core system;
-    class ValAgent,DataAgent,RepAgent agent;
-    class ReplayBuffer,DB storage;
+    %% Property Valuation Request
+    Client->>MCP: Valuation Request
+    MCP->>ValAgent: Process Request
+    ValAgent->>MCP: Request Data Cleaning
+    MCP->>DataAgent: Clean Data Request
+    DataAgent->>MCP: Return Cleaned Data
+    MCP->>ValAgent: Deliver Cleaned Data
+    ValAgent->>MCP: Return Valuation
+    MCP->>RepAgent: Generate Report
+    RepAgent->>MCP: Return Report
+    MCP->>Client: Deliver Final Result
+    
+    %% Integration Issue Resolution
+    DataAgent->>MCP: Report Integration Issue
+    MCP->>IntCoord: Forward Issue
+    IntCoord->>MCP: Request Assistance
+    MCP->>ArchPrime: Forward Assistance Request
+    ArchPrime->>MCP: Provide Architectural Guidance
+    MCP->>IntCoord: Deliver Guidance
+    IntCoord->>MCP: Resolution Plan
+    MCP->>DataAgent: Implementation Instructions
+    DataAgent->>MCP: Confirm Resolution
+    MCP->>IntCoord: Update Integration Status
+    
+    %% System Health Monitoring
+    Core->>MCP: Health Check Request
+    MCP->>ValAgent: Request Status
+    MCP->>DataAgent: Request Status
+    MCP->>RepAgent: Request Status
+    MCP->>ArchPrime: Request Status
+    MCP->>IntCoord: Request Status
+    ValAgent->>MCP: Status Update
+    DataAgent->>MCP: Status Update
+    RepAgent->>MCP: Status Update
+    ArchPrime->>MCP: Status Update
+    IntCoord->>MCP: Status Update
+    MCP->>Core: System Health Report
 ```
 
-## Message Flow Sequence
+## Message Flow by Event Type
 
-1. Client sends a request to the API layer (e.g., property valuation)
-2. API layer processes request and forwards to MCP
-3. MCP identifies which agent has the required capability
-4. MCP routes the message to the appropriate agent (e.g., Valuation Agent)
-5. Valuation Agent processes the request
-6. If needed, Valuation Agent performs database operations
-7. Valuation Agent may need data cleaning and sends a request
-8. MCP routes the cleaning request to the Data Cleaner Agent
-9. Data Cleaner Agent processes and cleans the data
-10. Data Cleaner Agent returns the cleaned data to MCP
-11. MCP routes the cleaned data back to the Valuation Agent
-12. Valuation Agent completes the valuation with cleaned data
-13. Valuation Agent returns the result to MCP
-14. MCP stores the interaction experience in the Replay Buffer
-15. MCP returns the final result to the API layer
-16. API layer formats and sends the response to the Client
+### Normal Operation
 
-Throughout this process, the Core Orchestrator monitors the system, handles agent registration, and performs health checks to ensure everything is functioning properly.
+1. **Client Request Processing**
+   - Client sends request to MCP
+   - MCP routes to appropriate operational agent
+   - Agent processes request and returns result
+   - MCP delivers result to client
 
-## Event-Based Communication
+2. **Inter-Agent Collaboration**
+   - Agent sends assistance request to MCP
+   - MCP routes to capable agent
+   - Receiving agent processes and returns assistance
+   - MCP delivers assistance to requesting agent
 
-In addition to the request-response pattern shown above, the system also uses event-based communication:
+3. **System Monitoring**
+   - Core initiates health check
+   - MCP collects status from all agents
+   - MCP aggregates and returns system health report
+   - Core takes action if needed
 
-- Agents can broadcast messages to all other agents
-- Status updates are sent regularly to maintain system awareness
-- Error events trigger appropriate handling and recovery mechanisms
-- Training events prompt agents to learn from the Replay Buffer
+### Command Structure Coordination
+
+1. **Architectural Guidance**
+   - Architect Prime broadcasts vision statements periodically
+   - Architect Prime generates system architecture diagrams
+   - Architect Prime responds to architectural questions
+   - Architect Prime performs architectural reviews
+
+2. **Integration Coordination**
+   - Integration Coordinator validates API contracts
+   - Integration Coordinator monitors integration points
+   - Integration Coordinator maps dependencies
+   - Integration Coordinator resolves integration issues
+
+## Event Type Usage
+
+| Event Type | Primary Users | Purpose |
+|------------|---------------|---------|
+| REQUEST | Client → MCP → Agent | Process client requests |
+| RESPONSE | Agent → MCP → Client | Return processing results |
+| COMMAND | Core/MCP → Agent | Direct agent to perform action |
+| COMMAND_RESULT | Agent → MCP → Core | Return command execution result |
+| ASSISTANCE_REQUESTED | Agent → MCP → Agent | Request help from another agent |
+| ASSISTANCE_RESPONSE | Agent → MCP → Agent | Provide help to requesting agent |
+| BROADCAST | Core/Architect Prime → MCP → All | System-wide announcements |
+| STATUS_UPDATE | Agent → MCP → Core | Report agent health and metrics |
+| HEALTH_CHECK | Core → MCP → All | Trigger system health check |
+| ERROR | Any → MCP → Core | Report errors or issues |
+
+## Benefits of the Interaction Model
+
+1. **Centralized Coordination**: All messages flow through the MCP, enabling monitoring, logging, and replay buffer collection
+2. **Clear Responsibility Boundaries**: Each agent has well-defined roles and message types it can send/receive
+3. **Scalable Architecture**: New agents can be added without changing the interaction pattern
+4. **Consistent Messaging Protocol**: Standardized message format simplifies agent implementation
+5. **Improved Observability**: Communication flow makes it easy to trace request handling
