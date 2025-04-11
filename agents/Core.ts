@@ -423,14 +423,36 @@ export class Core extends EventEmitter {
       
       // Check agent statuses
       for (const [agentId, status] of Object.entries(agentStatuses)) {
-        if (status.status !== 'healthy') {
-          if (status.status === 'error' && systemStatus !== 'error') {
-            systemStatus = 'error';
-          } else if (status.status === 'degraded' && systemStatus === 'healthy') {
-            systemStatus = 'degraded';
+        // Ensure status object is properly formatted
+        if (status && typeof status === 'object' && 'status' in status) {
+          if (status.status !== 'healthy') {
+            if (status.status === 'error' && systemStatus !== 'error') {
+              systemStatus = 'error';
+            } else if (status.status === 'degraded' && systemStatus === 'healthy') {
+              systemStatus = 'degraded';
+            }
+            
+            issues.push(`Agent ${agentId} status: ${status.status}`);
           }
+        } else {
+          // Handle missing or malformed status
+          systemStatus = 'degraded';
+          issues.push(`Agent ${agentId} returned invalid status`);
           
-          issues.push(`Agent ${agentId} status: ${status.status}`);
+          // Create default status for the agent if missing
+          agentStatuses[agentId] = agentStatuses[agentId] || {
+            agentId: agentId,
+            agentType: AgentType.SYSTEM,
+            status: 'degraded',
+            lastActivity: new Date().toISOString(),
+            activeRequests: 0,
+            metrics: { 
+              avgResponseTime: 0, 
+              successRate: 0, 
+              errorRate: 1.0, 
+              requestsProcessed: 0 
+            }
+          };
         }
       }
       

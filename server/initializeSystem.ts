@@ -107,8 +107,12 @@ function setupEventListeners(core: Core): void {
       
       // Check unhealthy agents
       Object.entries(status.components.agents).forEach(([agentId, agentStatus]) => {
-        if (agentStatus.status !== 'healthy') {
-          console.warn(`Agent ${agentId} status: ${agentStatus.status}`);
+        if (agentStatus && typeof agentStatus === 'object' && 'status' in agentStatus) {
+          if (agentStatus.status !== 'healthy') {
+            console.warn(`Agent ${agentId} status: ${agentStatus.status}`);
+          }
+        } else {
+          console.warn(`Agent ${agentId} has invalid status format`);
         }
       });
     }
