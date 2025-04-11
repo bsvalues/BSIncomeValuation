@@ -42,6 +42,7 @@ export enum EventType {
   
   // Coordination events
   ASSISTANCE_REQUESTED = 'ASSISTANCE_REQUESTED',
+  ASSISTANCE_RESPONSE = 'ASSISTANCE_RESPONSE',
   ASSISTANCE_PROVIDED = 'ASSISTANCE_PROVIDED',
   
   // Learning events
