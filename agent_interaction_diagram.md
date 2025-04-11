@@ -1,248 +1,80 @@
-# Agent Interaction Diagram and Message Flow
+# Agent System Interaction Diagram
 
-```
-┌────────────────────────────────────────────────────────────────────┐
-│                                                                    │
-│                     Client Applications                            │
-│                                                                    │
-└───────────────────────────────┬────────────────────────────────────┘
-                                │
-                                ▼
-┌────────────────────────────────────────────────────────────────────┐
-│                                                                    │
-│                         API Layer                                  │
-│                                                                    │
-└───────────────────────────────┬────────────────────────────────────┘
-                                │
-                                ▼
-┌────────────────────────────────────────────────────────────────────┐
-│                                                                    │
-│              Master Control Program (MCP)                          │
-│                                                                    │
-│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐ │
-│  │                 │    │                 │    │                 │ │
-│  │  Agent Registry │    │  Replay Buffer  │    │ Learning Engine │ │
-│  │                 │    │                 │    │                 │ │
-│  └────────┬────────┘    └────────┬────────┘    └────────┬────────┘ │
-│           │                      │                      │          │
-└───────────┼──────────────────────┼──────────────────────┼──────────┘
-            │                      │                      │
-            ▼                      │                      ▼
-┌───────────────────────┐          │          ┌─────────────────────────┐
-│                       │          │          │                         │
-│    Message Router     │◄─────────┘          │     Policy Updater      │
-│                       │                     │                         │
-└───────────┬───────────┘                     └───────────┬─────────────┘
-            │                                             │
-            │                                             │
-            ▼                                             ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                                                                         │
-│                               Agent Army                                │
-│                                                                         │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌────────────┐│
-│  │             │    │             │    │             │    │            ││
-│  │ValuationAgent    │DataCleanAgent    │ReportingAgent    │  Future    ││
-│  │             │    │             │    │             │    │  Agents    ││
-│  └─────────────┘    └─────────────┘    └─────────────┘    └────────────┘│
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+The following diagram illustrates how the components of the Multi-Agent System interact with each other:
 
-## Message Flow Examples
-
-### 1. Standard Request Processing
-
-```
-Client Request
-      │
-      ▼
-API Endpoint
-      │
-      ▼
-MCP Controller
-      │
-      ▼
-Agent Registry (finds appropriate agent)
-      │
-      ▼
-Selected Agent (processes request)
-      │
-      ▼
-Agent sends result message to MCP
-      │
-      ▼
-Message stored in Replay Buffer
-      │
-      ▼
-Result returned to client
+```mermaid
+graph TB
+    Client[Client API Request]
+    API[API Layer]
+    MCP[Master Control Program]
+    Core[Core Orchestrator]
+    ValAgent[Valuation Agent]
+    DataAgent[Data Cleaner Agent]
+    RepAgent[Reporting Agent]
+    ReplayBuffer[Replay Buffer]
+    DB[(Database)]
+    
+    Client -->|1. Request| API
+    API -->|2. Process Request| MCP
+    MCP -->|3. Find Capable Agent| MCP
+    MCP -->|4. Route Message| ValAgent
+    MCP -->|4. Route Message| DataAgent
+    MCP -->|4. Route Message| RepAgent
+    ValAgent -->|5. Process Request| ValAgent
+    ValAgent -->|6. DB Operations| DB
+    ValAgent -->|7. Request Data Cleaning| MCP
+    MCP -->|8. Route Cleaning Request| DataAgent
+    DataAgent -->|9. Clean Data| DataAgent
+    DataAgent -->|10. Return Cleaned Data| MCP
+    MCP -->|11. Route Cleaned Data| ValAgent
+    ValAgent -->|12. Complete Valuation| ValAgent
+    ValAgent -->|13. Return Result| MCP
+    MCP -->|14. Store Experience| ReplayBuffer
+    MCP -->|15. Return Result| API
+    API -->|16. Response| Client
+    Core -->|System Monitoring| MCP
+    Core -->|Agent Registration| MCP
+    Core -->|Health Checks| ValAgent
+    Core -->|Health Checks| DataAgent
+    Core -->|Health Checks| RepAgent
+    
+    classDef client fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef system fill:#bbf,stroke:#33f,stroke-width:2px;
+    classDef agent fill:#bfb,stroke:#3a3,stroke-width:2px;
+    classDef storage fill:#ffb,stroke:#aa3,stroke-width:2px;
+    
+    class Client client;
+    class API,MCP,Core system;
+    class ValAgent,DataAgent,RepAgent agent;
+    class ReplayBuffer,DB storage;
 ```
 
-### 2. Agent Help Request Flow
+## Message Flow Sequence
 
-```
-Agent encounters difficulty
-      │
-      ▼
-Agent sends REQUEST_HELP message to MCP
-      │
-      ▼
-MCP stores request in Replay Buffer
-      │
-      ▼
-MCP identifies helper agent based on capabilities
-      │
-      ▼
-MCP forwards request to helper agent
-      │
-      ▼
-Helper agent processes request
-      │
-      ▼
-Helper sends assistance result to MCP
-      │
-      ▼
-MCP forwards assistance to original agent
-      │
-      ▼
-Original agent completes task with assistance
-```
+1. Client sends a request to the API layer (e.g., property valuation)
+2. API layer processes request and forwards to MCP
+3. MCP identifies which agent has the required capability
+4. MCP routes the message to the appropriate agent (e.g., Valuation Agent)
+5. Valuation Agent processes the request
+6. If needed, Valuation Agent performs database operations
+7. Valuation Agent may need data cleaning and sends a request
+8. MCP routes the cleaning request to the Data Cleaner Agent
+9. Data Cleaner Agent processes and cleans the data
+10. Data Cleaner Agent returns the cleaned data to MCP
+11. MCP routes the cleaned data back to the Valuation Agent
+12. Valuation Agent completes the valuation with cleaned data
+13. Valuation Agent returns the result to MCP
+14. MCP stores the interaction experience in the Replay Buffer
+15. MCP returns the final result to the API layer
+16. API layer formats and sends the response to the Client
 
-### 3. Learning Cycle
+Throughout this process, the Core Orchestrator monitors the system, handles agent registration, and performs health checks to ensure everything is functioning properly.
 
-```
-Replay Buffer reaches threshold size
-      │
-      ▼
-MCP triggers learning cycle
-      │
-      ▼
-Learning Engine samples experiences
-      │
-      ▼
-Learning Engine computes policy updates
-      │
-      ▼
-Policy Updater distributes updates to agents
-      │
-      ▼
-Agents update internal parameters
-```
+## Event-Based Communication
 
-## Sample JSON Messages
+In addition to the request-response pattern shown above, the system also uses event-based communication:
 
-### Action Message (ValuationAgent analyzing income)
-
-```json
-{
-  "agentId": "valuation-agent-1",
-  "agentType": "valuation",
-  "timestamp": "2025-04-11T20:15:32.123Z",
-  "eventType": "action",
-  "payload": {
-    "action": "analyze_income",
-    "parameters": {
-      "userId": 1,
-      "incomeIds": [24, 25, 26]
-    },
-    "reason": "User requested income analysis via dashboard",
-    "expectedOutcome": "Income analysis with valuation suggestion"
-  }
-}
-```
-
-### Result Message (ValuationAgent returning analysis)
-
-```json
-{
-  "agentId": "valuation-agent-1",
-  "agentType": "valuation",
-  "timestamp": "2025-04-11T20:15:33.456Z",
-  "eventType": "result",
-  "payload": {
-    "success": true,
-    "data": {
-      "analysis": {
-        "findings": [
-          "Total monthly income is $4,500.00",
-          "Primary income source is rental (75% of total)",
-          "Income diversification score is 65.0 out of 100",
-          "Income stability score is 82.5 out of 100"
-        ],
-        "distribution": [
-          {"source": "rental", "percentage": 75.0},
-          {"source": "business", "percentage": 25.0}
-        ],
-        "recommendations": [
-          "Consider diversifying income sources"
-        ]
-      },
-      "suggestedValuation": {
-        "amount": "243000.00",
-        "multiplier": "4.5",
-        "confidenceScore": 85
-      }
-    },
-    "processingTimeMs": 1333,
-    "notes": ["Analysis completed with high confidence"]
-  },
-  "metadata": {
-    "processingTimeMs": 1333,
-    "confidenceScore": 85
-  }
-}
-```
-
-### Error Message (DataCleanerAgent encountering problem)
-
-```json
-{
-  "agentId": "data-cleaner-agent-1",
-  "agentType": "data_cleaner",
-  "timestamp": "2025-04-11T20:16:45.789Z",
-  "eventType": "error",
-  "payload": {
-    "message": "Invalid data format in income records",
-    "stack": "Error: Invalid data format in income records\n    at validateIncomeData...",
-    "taskId": "data-quality-scan-123"
-  }
-}
-```
-
-### Help Request Message (ReportingAgent needs assistance)
-
-```json
-{
-  "agentId": "reporting-agent-1",
-  "agentType": "reporting",
-  "timestamp": "2025-04-11T20:18:12.345Z",
-  "eventType": "request_help",
-  "payload": {
-    "problemDescription": "Unable to generate insights due to insufficient valuation history",
-    "taskId": "report-generation-456",
-    "failedAttempts": 2,
-    "lastError": "Error: Cannot calculate valuation growth with less than 2 data points",
-    "contextData": {
-      "userId": 1,
-      "valuationCount": 1,
-      "reportType": "quarterly"
-    }
-  }
-}
-```
-
-## Agent Coordination Benefits
-
-1. **Resource Optimization**: Agents focus on their specialized tasks while the MCP handles coordination, preventing duplication of effort.
-
-2. **Intelligent Routing**: Requests are routed to the most suitable agent based on capability matching and current performance metrics.
-
-3. **Continuous Improvement**: The system learns from every interaction, gradually improving performance without manual intervention.
-
-4. **Fault Tolerance**: If an agent fails or performs poorly, the MCP can route future requests to better-performing agents and trigger retraining.
-
-5. **Transparent Operations**: All agent activities are logged in the Replay Buffer, providing a comprehensive audit trail and learning dataset.
-
-6. **Adaptive Behavior**: Agents can adjust their parameters and behavior based on feedback from the MCP and other agents.
-
-7. **Scalable Architecture**: New agent types can be added without disrupting existing functionality, allowing the system to grow organically.
+- Agents can broadcast messages to all other agents
+- Status updates are sent regularly to maintain system awareness
+- Error events trigger appropriate handling and recovery mechanisms
+- Training events prompt agents to learn from the Replay Buffer

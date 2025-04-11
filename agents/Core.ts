@@ -347,7 +347,8 @@ export class Core extends EventEmitter {
       const agentStatuses: Record<string, AgentStatus> = {};
       
       // Use agents from our local collection (safer than querying MCP directly)
-      for (const [agentId, agent] of this.agents.entries()) {
+      // Use Array.from to convert the Map entries to an array before iterating
+      Array.from(this.agents.entries()).forEach(([agentId, agent]) => {
         try {
           const status = agent.getStatus();
           agentStatuses[agentId] = status;
@@ -368,7 +369,7 @@ export class Core extends EventEmitter {
             }
           };
         }
-      }
+      });
       
       // Also add a status for the CORE agent
       agentStatuses['CORE'] = {
