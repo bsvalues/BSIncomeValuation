@@ -340,8 +340,33 @@ export class Core extends EventEmitter {
    */
   private async performHealthCheck(): Promise<void> {
     try {
-      // Get MCP status
-      const mcpStatus = this.mcp.getStatus();
+      // Get MCP status with error handling
+      let mcpStatus = {
+        status: 'healthy' as 'healthy' | 'degraded' | 'error',
+        lastActivity: new Date().toISOString(),
+        metrics: {
+          messageQueueSize: 0,
+          messagesProcessed: 0,
+          activeAgents: 0
+        }
+      };
+      
+      try {
+        const status = this.mcp.getStatus();
+        if (status && typeof status === 'object') {
+          mcpStatus = {
+            ...mcpStatus,
+            ...status,
+            // Ensure status is a valid value, defaulting to 'degraded' if not
+            status: (status.status === 'healthy' || status.status === 'error') 
+              ? status.status 
+              : 'degraded'
+          };
+        }
+      } catch (err) {
+        this.log(`Error getting MCP status: ${(err as Error).message}`, 'warn');
+        mcpStatus.status = 'degraded';
+      }
       
       // Get status of all registered agents using a simpler approach
       const agentStatuses: Record<string, AgentStatus> = {};

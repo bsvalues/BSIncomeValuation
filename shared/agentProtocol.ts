@@ -10,9 +10,17 @@
  * Agent types supported by the system
  */
 export enum AgentType {
+  // Core operational agents
   VALUATION = 'VALUATION',
   DATA_CLEANER = 'DATA_CLEANER',
   REPORTING = 'REPORTING',
+  
+  // Command structure agents
+  ARCHITECT_PRIME = 'ARCHITECT_PRIME',
+  INTEGRATION_COORDINATOR = 'INTEGRATION_COORDINATOR',
+  COMPONENT_LEAD = 'COMPONENT_LEAD',
+  
+  // System agents
   SYSTEM = 'SYSTEM'
 }
 
