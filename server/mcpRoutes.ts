@@ -5,7 +5,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { asyncHandler } from './utils/asyncHandler';
+import { asyncHandler } from './errorHandler';
 import { 
   getMcp, 
   processAgentRequest, 

@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { testConnection } from './db.config';
 import { seedIncomeMultipliers, seedDevelopmentData } from './seed';
 import { errorHandler } from './errorHandler';
+import { initializeSystem, displayMasterPrompt } from './initializeSystem';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -70,6 +71,23 @@ app.use((req, res, next) => {
   
   // Seed development data if in development mode
   await seedDevelopmentData();
+  
+  // Initialize AI system
+  if (process.env.ENABLE_AI_SYSTEM === 'true' || app.get("env") === "development") {
+    log('Initializing AI System...');
+    try {
+      const core = initializeSystem();
+      
+      if (app.get("env") === "development") {
+        // Display the master prompt in development mode
+        displayMasterPrompt();
+      }
+      
+      log('AI System initialized successfully');
+    } catch (error) {
+      console.error('Error initializing AI System:', error);
+    }
+  }
   
   server.listen({
     port,
