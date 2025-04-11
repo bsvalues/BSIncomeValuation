@@ -43,13 +43,18 @@ Manages cross-component integration and contracts:
 - Integration issue resolution
 - Dependency diagram generation
 
-#### Component Lead Agents (Planned)
-Will provide domain-specific leadership for specialized areas:
-- Domain expertise coordination
-- Team oversight and direction
-- Best practices enforcement
-- Output validation
-- Strategic direction implementation
+#### Component Lead Agents
+Provide domain-specific leadership for specialized operational areas:
+- Domain expertise coordination and specialized guidance
+- Team agent oversight, status monitoring, and performance tracking
+- Best practices enforcement and quality control
+- Assistance request handling for domain-specific questions
+- Domain-specific knowledge management
+
+Currently implemented Component Lead Agents:
+- **Valuation Lead Agent**: Oversees property valuation methodologies, cap rate validation, market trend incorporation, and valuation quality control
+- **Data Cleaning Lead Agent**: Manages data quality standards, outlier detection, field validation, format standardization, and duplicate detection
+- **Reporting Lead Agent**: Coordinates report generation, visualization standards, insight quality, narrative generation, and comparative analysis
 
 ### 4. Operational Agents
 
@@ -157,10 +162,10 @@ The Multi-Agent System is integrated with the rest of the application through:
 Planned enhancements to the Multi-Agent System include:
 
 ### Command Structure Expansion
-- Implementation of Component Lead Agents for domain-specific leadership
 - Automated testing agents for system validation
 - Self-healing mechanisms for automatic recovery from failures
 - Dynamic configuration for real-time agent behavior adjustment
+- Expanded specialist agent roles for additional domains
 
 ### Intelligence Improvements
 - Enhanced learning through prioritized experience replay

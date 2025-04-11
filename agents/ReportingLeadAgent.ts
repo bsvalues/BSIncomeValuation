@@ -186,13 +186,13 @@ export class ReportingLeadAgent extends ComponentLeadAgent {
         id: 'report-004',
         name: 'Metadata Completeness',
         description: 'Reports should have complete metadata',
-        checkFunction: (report: ReportOutput) => {
-          return (
+        checkFunction: (report: ReportOutput): boolean => {
+          return !!(
             report.metadata &&
             typeof report.metadata === 'object' &&
-            !!report.metadata.generatedAt &&
-            !!report.metadata.reportPeriod &&
-            !!report.metadata.dataSource &&
+            report.metadata.generatedAt &&
+            report.metadata.reportPeriod &&
+            report.metadata.dataSource &&
             typeof report.metadata.confidenceLevel === 'number' &&
             report.metadata.confidenceLevel >= 0 &&
             report.metadata.confidenceLevel <= 1
@@ -231,8 +231,8 @@ export class ReportingLeadAgent extends ComponentLeadAgent {
         id: 'report-005',
         name: 'Actionable Recommendations',
         description: 'Reports should include actionable recommendations',
-        checkFunction: (report: ReportOutput) => {
-          return (
+        checkFunction: (report: ReportOutput): boolean => {
+          return !!(
             Array.isArray(report.recommendations) &&
             report.recommendations.length > 0 &&
             report.recommendations.every(r => typeof r === 'string' && r.length >= 30)

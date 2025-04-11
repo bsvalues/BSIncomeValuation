@@ -50,6 +50,11 @@ export function initializeSystem(): Core {
   const architectPrimeAgent = new ArchitectPrimeAgent('architect-prime-1');
   const integrationCoordinatorAgent = new IntegrationCoordinatorAgent('integration-coordinator-1');
   
+  // Create Component Lead agents
+  const valuationLeadAgent = new ValuationLeadAgent('valuation-lead-1');
+  const dataCleaningLeadAgent = new DataCleaningLeadAgent('data-cleaning-lead-1');
+  const reportingLeadAgent = new ReportingLeadAgent('reporting-lead-1');
+  
   // Register operational agents with Core
   core.registerAgent(valuationAgent);
   core.registerAgent(dataCleanerAgent);
@@ -58,6 +63,16 @@ export function initializeSystem(): Core {
   // Register command structure agents with Core
   core.registerAgent(architectPrimeAgent);
   core.registerAgent(integrationCoordinatorAgent);
+  
+  // Register Component Lead agents with Core
+  core.registerAgent(valuationLeadAgent);
+  core.registerAgent(dataCleaningLeadAgent);
+  core.registerAgent(reportingLeadAgent);
+  
+  // Register team agents with their respective leads
+  valuationLeadAgent.registerTeamAgent(valuationAgent.getAgentId());
+  dataCleaningLeadAgent.registerTeamAgent(dataCleanerAgent.getAgentId());
+  reportingLeadAgent.registerTeamAgent(reportingAgent.getAgentId());
   
   // Broadcast initial system announcement
   core.broadcastAnnouncement(
