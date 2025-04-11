@@ -15,6 +15,8 @@ import { IntegrationCoordinatorAgent } from '../agents/IntegrationCoordinatorAge
 import { ValuationLeadAgent } from '../agents/ValuationLeadAgent';
 import { DataCleaningLeadAgent } from '../agents/DataCleaningLeadAgent';
 import { ReportingLeadAgent } from '../agents/ReportingLeadAgent';
+import { ComplianceLeadAgent, ExtendedComponentDomain } from '../agents/ComplianceLeadAgent';
+import { DataIntegrationLeadAgent, IntegrationComponentDomain } from '../agents/DataIntegrationLeadAgent';
 import { ComponentDomain } from '../agents/ComponentLeadAgent';
 import { MASTER_PROMPT } from '../config/masterPrompt';
 
@@ -54,6 +56,8 @@ export function initializeSystem(): Core {
   const valuationLeadAgent = new ValuationLeadAgent('valuation-lead-1');
   const dataCleaningLeadAgent = new DataCleaningLeadAgent('data-cleaning-lead-1');
   const reportingLeadAgent = new ReportingLeadAgent('reporting-lead-1');
+  const complianceLeadAgent = new ComplianceLeadAgent('compliance-lead-1');
+  const dataIntegrationLeadAgent = new DataIntegrationLeadAgent('data-integration-lead-1');
   
   // Register operational agents with Core
   core.registerAgent(valuationAgent);
@@ -68,6 +72,8 @@ export function initializeSystem(): Core {
   core.registerAgent(valuationLeadAgent);
   core.registerAgent(dataCleaningLeadAgent);
   core.registerAgent(reportingLeadAgent);
+  core.registerAgent(complianceLeadAgent);
+  core.registerAgent(dataIntegrationLeadAgent);
   
   // Register team agents with their respective leads
   valuationLeadAgent.registerTeamAgent(valuationAgent.getAgentId());

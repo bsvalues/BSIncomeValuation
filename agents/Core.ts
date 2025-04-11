@@ -353,11 +353,14 @@ export class Core extends EventEmitter {
       
       try {
         const status = this.mcp.getStatus();
-        if (status && typeof status === 'object') {
+        if (status && typeof status === 'object' && status.status) {
+          // Create a new object to avoid reference issues
           mcpStatus = {
+            // Start with our default values
             ...mcpStatus,
+            // Add metrics and other properties
             ...status,
-            // Ensure status is a valid value, defaulting to 'degraded' if not
+            // Ensure status is a valid value, defaulting to 'degraded' if not valid
             status: (status.status === 'healthy' || status.status === 'error') 
               ? status.status 
               : 'degraded'
