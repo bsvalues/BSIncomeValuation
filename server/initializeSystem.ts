@@ -10,6 +10,8 @@ import { Core } from '../agents/Core';
 import { ValuationAgent } from '../agents/ValuationAgent.new';
 import { DataCleanerAgent } from '../agents/DataCleanerAgent.new';
 import { ReportingAgent } from '../agents/ReportingAgent.new';
+import { ArchitectPrimeAgent } from '../agents/ArchitectPrimeAgent';
+import { IntegrationCoordinatorAgent } from '../agents/IntegrationCoordinatorAgent';
 import { MASTER_PROMPT } from '../config/masterPrompt';
 
 let systemInitialized = false;
@@ -35,15 +37,23 @@ export function initializeSystem(): Core {
     enableLogging: true
   });
   
-  // Create and register agents
+  // Create and register operational agents
   const valuationAgent = new ValuationAgent('valuation-agent-1');
   const dataCleanerAgent = new DataCleanerAgent('data-cleaner-agent-1');
   const reportingAgent = new ReportingAgent('reporting-agent-1');
   
-  // Register agents with Core
+  // Create command structure agents
+  const architectPrimeAgent = new ArchitectPrimeAgent('architect-prime-1');
+  const integrationCoordinatorAgent = new IntegrationCoordinatorAgent('integration-coordinator-1');
+  
+  // Register operational agents with Core
   core.registerAgent(valuationAgent);
   core.registerAgent(dataCleanerAgent);
   core.registerAgent(reportingAgent);
+  
+  // Register command structure agents with Core
+  core.registerAgent(architectPrimeAgent);
+  core.registerAgent(integrationCoordinatorAgent);
   
   // Broadcast initial system announcement
   core.broadcastAnnouncement(

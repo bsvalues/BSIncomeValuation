@@ -71,6 +71,28 @@ export class IntegrationCoordinatorAgent extends BaseAgent {
   private dependencyMap: Record<string, string[]> = {};
   
   /**
+   * Log a message with the agent's prefix
+   * @param message The message to log
+   * @param level The log level (info, warn, error)
+   */
+  protected logMessage(message: string, level: 'info' | 'warn' | 'error' = 'info'): void {
+    const timestamp = new Date().toISOString();
+    const prefix = `[${this.agentId} ${timestamp}]`;
+    
+    switch (level) {
+      case 'info':
+        console.log(`${prefix} ${message}`);
+        break;
+      case 'warn':
+        console.warn(`${prefix} WARNING: ${message}`);
+        break;
+      case 'error':
+        console.error(`${prefix} ERROR: ${message}`);
+        break;
+    }
+  }
+  
+  /**
    * Create a new Integration Coordinator Agent
    * @param agentId Unique identifier for this agent
    * @param config Configuration options
