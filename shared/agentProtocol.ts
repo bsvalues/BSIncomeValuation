@@ -1,311 +1,155 @@
 /**
- * Agent Communication Protocol for Benton County Assessor's Office AI Platform
+ * Agent Protocol - Standardized Communication Format
  * 
- * This module defines the standardized message format and types used for
- * communication between the MCP (Master Control Program) and the Agent Army.
+ * This module defines the protocol used for communication between agents
+ * and the Master Control Program (MCP). It establishes message formats,
+ * event types, and error codes to ensure consistent communication.
  */
 
-import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
-
 /**
- * Enumeration of possible message event types
- */
-export enum EventType {
-  COMMAND = 'COMMAND',
-  EVENT = 'EVENT',
-  QUERY = 'QUERY',
-  RESPONSE = 'RESPONSE',
-  ERROR = 'ERROR',
-  STATUS_UPDATE = 'STATUS_UPDATE',
-  ASSISTANCE_REQUESTED = 'ASSISTANCE_REQUESTED'
-}
-
-/**
- * Enumeration of agent types in the system
+ * Agent types supported by the system
  */
 export enum AgentType {
-  MCP = 'MCP',
   VALUATION = 'VALUATION',
   DATA_CLEANER = 'DATA_CLEANER',
   REPORTING = 'REPORTING',
-  DATA_INTEGRATION = 'DATA_INTEGRATION',
-  NLP = 'NLP',
-  COMPLIANCE = 'COMPLIANCE'
+  SYSTEM = 'SYSTEM'
 }
 
 /**
- * Enumeration of possible message priorities
+ * Event types for message communication
  */
-export enum MessagePriority {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high'
+export enum EventType {
+  // Core events
+  REQUEST = 'REQUEST',
+  RESPONSE = 'RESPONSE',
+  ERROR = 'ERROR',
+  BROADCAST = 'BROADCAST',
+  
+  // System management events
+  REGISTRATION = 'REGISTRATION',
+  UNREGISTRATION = 'UNREGISTRATION',
+  HEARTBEAT = 'HEARTBEAT',
+  SHUTDOWN = 'SHUTDOWN',
+  
+  // Coordination events
+  ASSISTANCE_REQUESTED = 'ASSISTANCE_REQUESTED',
+  ASSISTANCE_PROVIDED = 'ASSISTANCE_PROVIDED',
+  
+  // Learning events
+  EXPERIENCE_ADDED = 'EXPERIENCE_ADDED',
+  LEARNING_TRIGGERED = 'LEARNING_TRIGGERED',
+  
+  // Status events
+  STATUS_UPDATE = 'STATUS_UPDATE',
+  METRIC_REPORT = 'METRIC_REPORT',
+  
+  // Command events
+  COMMAND = 'COMMAND',
+  COMMAND_RESULT = 'COMMAND_RESULT'
 }
 
 /**
- * Enumeration of common error codes
+ * Standard error codes
  */
 export enum ErrorCode {
+  // General errors
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
   VALIDATION_ERROR = 'VALIDATION_ERROR',
-  PROCESSING_ERROR = 'PROCESSING_ERROR',
   TIMEOUT_ERROR = 'TIMEOUT_ERROR',
-  RESOURCE_ERROR = 'RESOURCE_ERROR',
-  AUTHORIZATION_ERROR = 'AUTHORIZATION_ERROR',
-  NOT_FOUND_ERROR = 'NOT_FOUND_ERROR',
-  COMMUNICATION_ERROR = 'COMMUNICATION_ERROR',
-  UNKNOWN_ERROR = 'UNKNOWN_ERROR'
+  PROCESSING_ERROR = 'PROCESSING_ERROR',
+  
+  // Communication errors
+  INVALID_MESSAGE = 'INVALID_MESSAGE',
+  UNKNOWN_AGENT = 'UNKNOWN_AGENT',
+  AGENT_UNREACHABLE = 'AGENT_UNREACHABLE',
+  
+  // System errors
+  SYSTEM_OVERLOAD = 'SYSTEM_OVERLOAD',
+  RESOURCE_EXHAUSTED = 'RESOURCE_EXHAUSTED',
+  NOT_IMPLEMENTED = 'NOT_IMPLEMENTED',
+  
+  // Agent errors
+  AGENT_ERROR = 'AGENT_ERROR',
+  CAPABILITY_MISMATCH = 'CAPABILITY_MISMATCH',
+  
+  // Security errors
+  UNAUTHORIZED = 'UNAUTHORIZED',
+  FORBIDDEN = 'FORBIDDEN'
 }
 
 /**
- * Interface for message metadata
- */
-export interface MessageMetadata {
-  priority?: MessagePriority;
-  ttl?: number; // Time to live in seconds
-  retryCount?: number;
-  processingTime?: number; // Processing time in milliseconds
-  confidenceScore?: number; // Confidence score of the result (0-100)
-  [key: string]: any; // Allow for additional custom metadata
-}
-
-/**
- * Zod schema for validating metadata
- */
-export const MetadataSchema = z.object({
-  priority: z.enum([
-    MessagePriority.LOW,
-    MessagePriority.MEDIUM,
-    MessagePriority.HIGH
-  ]).optional(),
-  ttl: z.number().positive().optional(),
-  retryCount: z.number().nonnegative().optional(),
-  processingTime: z.number().nonnegative().optional(),
-  confidenceScore: z.number().min(0).max(100).optional()
-}).passthrough(); // Allow additional properties
-
-/**
- * Base interface for agent messages
+ * Standardized agent message format
  */
 export interface AgentMessage {
-  messageId: string;
-  correlationId: string;
-  sourceAgentId: string;
-  targetAgentId: string; // Can be specific agent ID or "broadcast"
-  timestamp: string;
-  eventType: EventType;
-  payload: any;
-  metadata?: MessageMetadata;
+  messageId: string;             // Unique ID for this message
+  correlationId: string;         // ID to correlate related messages (e.g., request/response)
+  sourceAgentId: string;         // ID of the agent sending this message
+  targetAgentId: string;         // ID of the intended recipient ('MCP' for broadcast/system)
+  timestamp: string;             // ISO timestamp of message creation
+  eventType: EventType;          // Type of event this message represents
+  payload: any;                  // Message payload (specific to event type)
 }
 
 /**
- * Zod schema for validating the core message structure
+ * Agent configuration settings interface
  */
-export const AgentMessageSchema = z.object({
-  messageId: z.string().uuid(),
-  correlationId: z.string().uuid(),
-  sourceAgentId: z.string().min(1),
-  targetAgentId: z.string().min(1),
-  timestamp: z.string().datetime({ offset: true }),
-  eventType: z.nativeEnum(EventType),
-  payload: z.any(),
-  metadata: MetadataSchema.optional()
-});
-
-/**
- * Interface for command payloads
- */
-export interface CommandPayload {
-  commandName: string;
-  parameters: Record<string, any>;
-  [key: string]: any;
+export interface AgentConfig {
+  [key: string]: any;            // Dynamic configuration properties
 }
 
 /**
- * Interface for response payloads
- */
-export interface ResponsePayload {
-  status: 'success' | 'failure';
-  result: any;
-  [key: string]: any;
-}
-
-/**
- * Interface for error payloads
- */
-export interface ErrorPayload {
-  errorCode: ErrorCode | string;
-  errorMessage: string;
-  details?: any;
-  [key: string]: any;
-}
-
-/**
- * Interface for status update payloads
- */
-export interface StatusUpdatePayload {
-  status: 'healthy' | 'degraded' | 'error';
-  metrics: {
-    cpuUsage?: number;
-    memoryUsage?: number;
-    activeTaskCount?: number;
-    queueDepth?: number;
-    lastProcessingTime?: number;
-    errorRate?: number;
-    [key: string]: any;
-  };
-  message?: string;
-  [key: string]: any;
-}
-
-/**
- * Interface for assistance request payloads
- */
-export interface AssistanceRequestPayload {
-  problemDescription: string;
-  taskId: string;
-  failedAttempts: number;
-  lastError?: string;
-  contextData?: any;
-  [key: string]: any;
-}
-
-/**
- * Interface for logged agent experiences in the replay buffer
+ * Agent experience record for learning
  */
 export interface AgentExperience {
-  experienceId: string;
-  agentId: string;
+  experienceId: string;          // Unique ID for this experience
+  agentId: string;               // ID of the agent that had this experience
+  timestamp: string;             // When this experience occurred
+  taskId: string;                // ID of the task/request that generated this experience
+  metadata: {                    // Metadata about the experience
+    messageType: EventType;      // Type of message that generated this experience
+    processingTime: number;      // Time taken to process in ms
+    successRate?: number;        // Success rate (0-1) if applicable
+  };
+  request: any;                  // The original request
+  result: any;                   // The result (could be success or error)
+  tags: string[];                // Tags for categorization
+}
+
+/**
+ * Agent status for health checks
+ */
+export interface AgentStatus {
+  agentId: string;               // ID of the agent
+  agentType: AgentType;          // Type of the agent
+  status: 'healthy' | 'degraded' | 'error'; // Current health status
+  lastActivity: string;          // Timestamp of last activity
+  activeRequests: number;        // Number of active requests
+  metrics: {                     // Performance metrics
+    avgResponseTime: number;     // Average response time in ms
+    successRate: number;         // Success rate (0-1)
+    errorRate: number;           // Error rate (0-1)
+    requestsProcessed: number;   // Total requests processed
+  };
+  errors?: string[];             // Recent errors if status is degraded/error
+}
+
+/**
+ * System health status
+ */
+export interface SystemHealthStatus {
+  status: 'healthy' | 'degraded' | 'error';
   timestamp: string;
-  state: any; // State before action
-  action: any; // Action taken
-  result: any; // Result/outcome
-  nextState: any; // State after action
-  rewardSignal?: number; // Optional reward signal for RL-based learning
-  metadata: {
-    priority: number; // Priority for replay (0-1)
-    [key: string]: any;
-  };
-}
-
-/**
- * Function to create a new message
- */
-export function createMessage(
-  sourceAgentId: string,
-  targetAgentId: string,
-  eventType: EventType,
-  payload: any,
-  options: {
-    correlationId?: string;
-    metadata?: MessageMetadata;
-  } = {}
-): AgentMessage {
-  return {
-    messageId: uuidv4(),
-    correlationId: options.correlationId || uuidv4(),
-    sourceAgentId,
-    targetAgentId,
-    timestamp: new Date().toISOString(),
-    eventType,
-    payload,
-    metadata: options.metadata
-  };
-}
-
-/**
- * Function to create a response message
- */
-export function createResponse(
-  requestMessage: AgentMessage,
-  status: 'success' | 'failure',
-  result: any,
-  metadata?: MessageMetadata
-): AgentMessage {
-  return {
-    messageId: uuidv4(),
-    correlationId: requestMessage.correlationId,
-    sourceAgentId: requestMessage.targetAgentId,
-    targetAgentId: requestMessage.sourceAgentId,
-    timestamp: new Date().toISOString(),
-    eventType: EventType.RESPONSE,
-    payload: {
-      status,
-      result
+  components: {
+    mcp: {
+      status: 'healthy' | 'degraded' | 'error';
+      metrics: {
+        messageQueueSize: number;
+        messagesProcessed: number;
+        activeAgents: number;
+      }
     },
-    metadata
+    agents: Record<string, AgentStatus>;
   };
-}
-
-/**
- * Function to create an error message
- */
-export function createErrorMessage(
-  requestMessage: AgentMessage,
-  errorCode: ErrorCode | string,
-  errorMessage: string,
-  details?: any,
-  metadata?: MessageMetadata
-): AgentMessage {
-  return {
-    messageId: uuidv4(),
-    correlationId: requestMessage.correlationId,
-    sourceAgentId: requestMessage.targetAgentId,
-    targetAgentId: requestMessage.sourceAgentId,
-    timestamp: new Date().toISOString(),
-    eventType: EventType.ERROR,
-    payload: {
-      errorCode,
-      errorMessage,
-      details
-    },
-    metadata: {
-      ...metadata,
-      priority: MessagePriority.HIGH
-    }
-  };
-}
-
-/**
- * Function to validate a message
- */
-export function validateMessage(message: any): { valid: boolean; errors?: z.ZodError } {
-  try {
-    AgentMessageSchema.parse(message);
-    return { valid: true };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return { valid: false, errors: error };
-    }
-    throw error;
-  }
-}
-
-/**
- * Function to create an experience entry for the replay buffer
- */
-export function createExperience(
-  agentId: string,
-  state: any,
-  action: any,
-  result: any,
-  nextState: any,
-  options: {
-    rewardSignal?: number;
-    priority?: number; // 0-1 scale, higher means more important
-  } = {}
-): AgentExperience {
-  return {
-    experienceId: uuidv4(),
-    agentId,
-    timestamp: new Date().toISOString(),
-    state,
-    action,
-    result,
-    nextState,
-    rewardSignal: options.rewardSignal,
-    metadata: {
-      priority: options.priority !== undefined ? options.priority : 0.5
-    }
-  };
+  issues?: string[];
 }

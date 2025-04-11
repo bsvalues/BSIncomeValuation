@@ -1,231 +1,374 @@
 /**
- * ReplayBuffer Implementation
+ * Replay Buffer Implementation
  * 
- * This module provides a memory-based replay buffer for storing agent experiences
- * with prioritization capabilities. In a production environment, this would be
- * backed by a persistent store like PostgreSQL or Redis.
+ * This module implements a replay buffer for agent experiences.
+ * It provides storage, retrieval and management of agent experiences
+ * to facilitate continuous learning.
  */
 
-import { AgentExperience } from '../shared/agentProtocol';
+import { AgentExperience, EventType } from '../shared/agentProtocol';
 
 /**
- * Interface for a replay buffer that stores agent experiences
+ * Priority bucket for categorizing experiences
  */
-export interface IReplayBuffer {
-  /**
-   * Add an experience to the buffer
-   * @param experience Experience to add
-   */
-  add(experience: AgentExperience): void;
+enum PriorityBucket {
+  HIGH = 'high',
+  MEDIUM = 'medium',
+  LOW = 'low'
+}
+
+/**
+ * Configuration for the replay buffer
+ */
+interface ReplayBufferConfig {
+  maxSize: number;                 // Maximum number of experiences to store
+  priorityThresholds: {
+    high: number;                  // Threshold for high priority (0-1)
+    medium: number;                // Threshold for medium priority (0-1)
+  };
+  expiryTimeMs: number;            // Time in ms before experiences expire
+  excludeEventTypes?: EventType[]; // Event types to exclude from buffer
+}
+
+/**
+ * Default configuration for the replay buffer
+ */
+const DEFAULT_CONFIG: ReplayBufferConfig = {
+  maxSize: 1000,
+  priorityThresholds: {
+    high: 0.8,
+    medium: 0.5
+  },
+  expiryTimeMs: 30 * 24 * 60 * 60 * 1000, // 30 days
+  excludeEventTypes: [
+    EventType.HEARTBEAT,
+    EventType.STATUS_UPDATE
+  ]
+};
+
+/**
+ * Replay Buffer for storing and managing agent experiences
+ */
+export class ReplayBuffer {
+  private buffer: Map<string, AgentExperience> = new Map();
+  private indexByAgent: Map<string, Set<string>> = new Map();
+  private indexByPriority: {
+    [PriorityBucket.HIGH]: Set<string>;
+    [PriorityBucket.MEDIUM]: Set<string>;
+    [PriorityBucket.LOW]: Set<string>;
+  };
+  private indexByTimestamp: Map<string, number> = new Map();
+  private config: ReplayBufferConfig;
   
   /**
-   * Get a sample of experiences from the buffer
-   * @param count Number of experiences to retrieve
-   * @param minPriority Optional minimum priority threshold
+   * Create a new ReplayBuffer
+   * @param config Configuration for the buffer
+   */
+  constructor(config: Partial<ReplayBufferConfig> = {}) {
+    this.config = {
+      ...DEFAULT_CONFIG,
+      ...config,
+      priorityThresholds: {
+        ...DEFAULT_CONFIG.priorityThresholds,
+        ...config.priorityThresholds
+      }
+    };
+    
+    // Initialize priority index
+    this.indexByPriority = {
+      [PriorityBucket.HIGH]: new Set<string>(),
+      [PriorityBucket.MEDIUM]: new Set<string>(),
+      [PriorityBucket.LOW]: new Set<string>()
+    };
+  }
+  
+  /**
+   * Add an experience to the buffer
+   * @param experience The experience to add
+   * @returns True if added successfully
+   */
+  public addExperience(experience: AgentExperience): boolean {
+    // Check if we should exclude this experience
+    if (this.shouldExcludeExperience(experience)) {
+      return false;
+    }
+    
+    // Ensure we have capacity (enforce maxSize)
+    if (this.buffer.size >= this.config.maxSize) {
+      this.evictOldestExperience();
+    }
+    
+    // Add to main buffer
+    this.buffer.set(experience.experienceId, experience);
+    
+    // Update agent index
+    if (!this.indexByAgent.has(experience.agentId)) {
+      this.indexByAgent.set(experience.agentId, new Set<string>());
+    }
+    this.indexByAgent.get(experience.agentId)!.add(experience.experienceId);
+    
+    // Update priority index
+    const priority = this.getPriority(experience);
+    this.indexByPriority[priority].add(experience.experienceId);
+    
+    // Update timestamp index
+    const timestamp = new Date(experience.timestamp).getTime();
+    this.indexByTimestamp.set(experience.experienceId, timestamp);
+    
+    return true;
+  }
+  
+  /**
+   * Get experiences for a specific agent
+   * @param agentId The agent ID
+   * @param limit Maximum number of experiences to return
    * @returns Array of experiences
    */
-  sample(count: number, minPriority?: number): AgentExperience[];
-  
-  /**
-   * Get all experiences in the buffer
-   * @returns Array of all experiences
-   */
-  getAll(): AgentExperience[];
-  
-  /**
-   * Get experiences for a specific agent
-   * @param agentId ID of the agent
-   * @returns Array of experiences for the agent
-   */
-  getByAgentId(agentId: string): AgentExperience[];
-  
-  /**
-   * Get high priority experiences from the buffer
-   * @param threshold Priority threshold (0-1)
-   * @returns Array of high priority experiences
-   */
-  getHighPriorityExperiences(threshold: number): AgentExperience[];
-  
-  /**
-   * Get the number of experiences in the buffer
-   * @returns Count of experiences
-   */
-  size(): number;
-  
-  /**
-   * Clear all experiences from the buffer
-   */
-  clear(): void;
-}
-
-/**
- * In-memory implementation of a replay buffer with prioritization
- */
-export class MemoryReplayBuffer implements IReplayBuffer {
-  private buffer: AgentExperience[] = [];
-  private maxSize: number;
-  private priorityThreshold: number;
-  
-  /**
-   * Create a new memory replay buffer
-   * @param maxSize Maximum number of experiences to store
-   * @param priorityThreshold Default threshold for high priority experiences
-   */
-  constructor(maxSize: number = 1000, priorityThreshold: number = 0.7) {
-    this.maxSize = maxSize;
-    this.priorityThreshold = priorityThreshold;
-  }
-  
-  /**
-   * Add an experience to the buffer
-   * @param experience Experience to add
-   */
-  public add(experience: AgentExperience): void {
-    this.buffer.push(experience);
+  public getExperiencesByAgent(agentId: string, limit: number = 100): AgentExperience[] {
+    const experiences: AgentExperience[] = [];
     
-    // Keep buffer size within limits
-    if (this.buffer.length > this.maxSize) {
-      // Remove lowest priority experiences first
-      this.buffer.sort((a, b) => 
-        (a.metadata.priority || 0) - (b.metadata.priority || 0)
-      );
-      this.buffer.shift();
-    }
+    // Get experience IDs for this agent
+    const experienceIds = this.indexByAgent.get(agentId) || new Set<string>();
     
-    // Sort by priority (descending) so high priority items are sampled more often
-    this.buffer.sort((a, b) => 
-      (b.metadata.priority || 0) - (a.metadata.priority || 0)
-    );
-  }
-  
-  /**
-   * Get a sample of experiences from the buffer using prioritized sampling
-   * @param count Number of experiences to sample
-   * @param minPriority Minimum priority threshold (optional)
-   * @returns Array of sampled experiences
-   */
-  public sample(count: number = 10, minPriority?: number): AgentExperience[] {
-    if (this.buffer.length === 0) {
-      return [];
-    }
-    
-    // Filter by minimum priority if specified
-    let eligibleExperiences = this.buffer;
-    if (minPriority !== undefined) {
-      eligibleExperiences = this.buffer.filter(exp => 
-        (exp.metadata.priority || 0) >= minPriority
-      );
-      
-      if (eligibleExperiences.length === 0) {
-        return [];
+    // Convert to array and limit
+    for (const id of Array.from(experienceIds).slice(0, limit)) {
+      const experience = this.buffer.get(id);
+      if (experience) {
+        experiences.push(experience);
       }
     }
     
-    if (eligibleExperiences.length <= count) {
-      return [...eligibleExperiences];
-    }
+    return experiences;
+  }
+  
+  /**
+   * Get experiences by priority
+   * @param priority The priority bucket
+   * @param limit Maximum number of experiences to return
+   * @returns Array of experiences
+   */
+  public getExperiencesByPriority(priority: PriorityBucket, limit: number = 100): AgentExperience[] {
+    const experiences: AgentExperience[] = [];
     
-    // Prioritized sampling
-    const sampledIndices = new Set<number>();
-    const result: AgentExperience[] = [];
+    // Get experience IDs for this priority
+    const experienceIds = this.indexByPriority[priority];
     
-    // First add some high priority samples
-    const highPriorityCount = Math.floor(count * 0.7);
-    for (let i = 0; i < highPriorityCount && i < eligibleExperiences.length; i++) {
-      result.push(eligibleExperiences[i]);
-      sampledIndices.add(i);
-    }
-    
-    // Then add some random samples from the remaining experiences
-    while (result.length < count && sampledIndices.size < eligibleExperiences.length) {
-      const idx = Math.floor(Math.random() * eligibleExperiences.length);
-      if (!sampledIndices.has(idx)) {
-        result.push(eligibleExperiences[idx]);
-        sampledIndices.add(idx);
+    // Convert to array and limit
+    for (const id of Array.from(experienceIds).slice(0, limit)) {
+      const experience = this.buffer.get(id);
+      if (experience) {
+        experiences.push(experience);
       }
     }
     
-    return result;
+    return experiences;
   }
   
   /**
-   * Get all experiences in the buffer
-   * @returns Array of all experiences
+   * Get all experiences
+   * @param limit Maximum number of experiences to return
+   * @returns Array of experiences
    */
-  public getAll(): AgentExperience[] {
-    return [...this.buffer];
+  public getAllExperiences(limit: number = 100): AgentExperience[] {
+    // Convert to array and limit
+    return Array.from(this.buffer.values()).slice(0, limit);
   }
   
   /**
-   * Get experiences for a specific agent
-   * @param agentId ID of the agent
-   * @returns Array of experiences for the agent
+   * Get recent experiences
+   * @param limit Maximum number of experiences to return
+   * @returns Array of experiences
    */
-  public getByAgentId(agentId: string): AgentExperience[] {
-    return this.buffer.filter(exp => exp.agentId === agentId);
+  public getRecentExperiences(limit: number = 100): AgentExperience[] {
+    // Get all experiences and sort by timestamp (newest first)
+    return Array.from(this.buffer.values())
+      .sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      )
+      .slice(0, limit);
   }
   
   /**
-   * Get high priority experiences from the buffer
-   * @param threshold Priority threshold (0-1)
-   * @returns Array of high priority experiences
+   * Get a balanced sample of experiences
+   * @param limit Maximum number of experiences to return
+   * @returns Array of experiences
    */
-  public getHighPriorityExperiences(threshold: number = this.priorityThreshold): AgentExperience[] {
-    return this.buffer.filter(exp => (exp.metadata.priority || 0) >= threshold);
+  public getBalancedSample(limit: number = 100): AgentExperience[] {
+    const experiences: AgentExperience[] = [];
+    
+    // Calculate how many experiences to take from each priority
+    const highCount = Math.ceil(limit * 0.5);  // 50% high priority
+    const mediumCount = Math.ceil(limit * 0.3); // 30% medium priority
+    const lowCount = Math.floor(limit * 0.2);   // 20% low priority
+    
+    // Get experiences from each priority
+    const highExperiences = this.getExperiencesByPriority(PriorityBucket.HIGH, highCount);
+    const mediumExperiences = this.getExperiencesByPriority(PriorityBucket.MEDIUM, mediumCount);
+    const lowExperiences = this.getExperiencesByPriority(PriorityBucket.LOW, lowCount);
+    
+    // Combine and shuffle
+    experiences.push(...highExperiences, ...mediumExperiences, ...lowExperiences);
+    this.shuffle(experiences);
+    
+    return experiences.slice(0, limit);
   }
   
   /**
-   * Get the number of experiences in the buffer
-   * @returns Count of experiences
+   * Clean up expired experiences
+   * @returns Number of experiences removed
    */
-  public size(): number {
-    return this.buffer.length;
+  public cleanupExpiredExperiences(): number {
+    let removed = 0;
+    const now = Date.now();
+    const expiryThreshold = now - this.config.expiryTimeMs;
+    
+    // Check all experiences against expiry time
+    // Convert to array to avoid iterator issues
+    Array.from(this.indexByTimestamp.entries()).forEach(([id, timestamp]) => {
+      if (timestamp < expiryThreshold) {
+        // Experience has expired, remove it
+        this.removeExperience(id);
+        removed++;
+      }
+    });
+    
+    return removed;
   }
   
   /**
-   * Clear all experiences from the buffer
+   * Get the size of the buffer
+   * @returns Number of experiences in the buffer
    */
-  public clear(): void {
-    this.buffer = [];
+  public getSize(): number {
+    return this.buffer.size;
   }
-}
-
-/**
- * Factory function to create the appropriate replay buffer based on configuration
- * @param config Configuration object
- * @returns Replay buffer instance
- */
-export function createReplayBuffer(config: {
-  type: 'memory' | 'postgres' | 'redis';
-  maxSize?: number;
-  priorityThreshold?: number;
-  connectionString?: string;
-}): IReplayBuffer {
-  switch (config.type) {
-    case 'memory':
-      return new MemoryReplayBuffer(
-        config.maxSize,
-        config.priorityThreshold
-      );
-    case 'postgres':
-      // In a production environment, implement PostgreSQL-backed replay buffer
-      console.warn('PostgreSQL replay buffer not yet implemented, using in-memory buffer');
-      return new MemoryReplayBuffer(
-        config.maxSize,
-        config.priorityThreshold
-      );
-    case 'redis':
-      // In a production environment, implement Redis-backed replay buffer
-      console.warn('Redis replay buffer not yet implemented, using in-memory buffer');
-      return new MemoryReplayBuffer(
-        config.maxSize,
-        config.priorityThreshold
-      );
-    default:
-      console.warn(`Unknown replay buffer type: ${config.type}, using in-memory buffer`);
-      return new MemoryReplayBuffer(
-        config.maxSize,
-        config.priorityThreshold
-      );
+  
+  /**
+   * Get statistics about the buffer
+   * @returns Statistics object
+   */
+  public getStats(): any {
+    return {
+      totalExperiences: this.buffer.size,
+      byPriority: {
+        high: this.indexByPriority[PriorityBucket.HIGH].size,
+        medium: this.indexByPriority[PriorityBucket.MEDIUM].size,
+        low: this.indexByPriority[PriorityBucket.LOW].size
+      },
+      byAgent: Object.fromEntries(
+        Array.from(this.indexByAgent.entries()).map(([agentId, experiences]) => 
+          [agentId, experiences.size]
+        )
+      ),
+      config: this.config
+    };
+  }
+  
+  /**
+   * Determine if an experience should be excluded
+   * @param experience The experience to check
+   * @returns True if it should be excluded
+   */
+  private shouldExcludeExperience(experience: AgentExperience): boolean {
+    // Check if event type is in excludeEventTypes
+    if (this.config.excludeEventTypes?.includes(experience.metadata.messageType)) {
+      return true;
+    }
+    
+    // Additional exclusion logic could be added here
+    
+    return false;
+  }
+  
+  /**
+   * Get the priority bucket for an experience
+   * @param experience The experience to categorize
+   * @returns The priority bucket
+   */
+  private getPriority(experience: AgentExperience): PriorityBucket {
+    // Determine priority based on metadata
+    if (experience.metadata.successRate !== undefined) {
+      // Success rate based priority
+      const successRate = experience.metadata.successRate;
+      if (successRate <= 0.2) {
+        // Low success rate = high priority
+        return PriorityBucket.HIGH;
+      } else if (successRate <= 0.5) {
+        // Medium success rate = medium priority
+        return PriorityBucket.MEDIUM;
+      }
+    }
+    
+    // Event type based priority
+    if (experience.metadata.messageType === EventType.ERROR) {
+      return PriorityBucket.HIGH;
+    } else if (experience.metadata.messageType === EventType.ASSISTANCE_REQUESTED || 
+               experience.metadata.messageType === EventType.ASSISTANCE_PROVIDED) {
+      return PriorityBucket.MEDIUM;
+    }
+    
+    // Default to low priority
+    return PriorityBucket.LOW;
+  }
+  
+  /**
+   * Remove the oldest experience from the buffer
+   */
+  private evictOldestExperience(): void {
+    // Find the oldest experience by timestamp
+    let oldestId: string | null = null;
+    let oldestTimestamp = Date.now();
+    
+    // Convert to array to avoid iterator issues
+    Array.from(this.indexByTimestamp.entries()).forEach(([id, timestamp]) => {
+      if (timestamp < oldestTimestamp) {
+        oldestId = id;
+        oldestTimestamp = timestamp;
+      }
+    });
+    
+    // Remove the oldest experience
+    if (oldestId) {
+      this.removeExperience(oldestId);
+    }
+  }
+  
+  /**
+   * Remove an experience from the buffer and all indexes
+   * @param experienceId The ID of the experience to remove
+   */
+  private removeExperience(experienceId: string): void {
+    const experience = this.buffer.get(experienceId);
+    if (!experience) return;
+    
+    // Remove from main buffer
+    this.buffer.delete(experienceId);
+    
+    // Remove from agent index
+    const agentIndex = this.indexByAgent.get(experience.agentId);
+    if (agentIndex) {
+      agentIndex.delete(experienceId);
+      if (agentIndex.size === 0) {
+        this.indexByAgent.delete(experience.agentId);
+      }
+    }
+    
+    // Remove from priority index
+    const priority = this.getPriority(experience);
+    this.indexByPriority[priority].delete(experienceId);
+    
+    // Remove from timestamp index
+    this.indexByTimestamp.delete(experienceId);
+  }
+  
+  /**
+   * Shuffle an array in place
+   * @param array The array to shuffle
+   */
+  private shuffle<T>(array: T[]): void {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
   }
 }

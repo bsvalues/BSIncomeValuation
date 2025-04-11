@@ -110,7 +110,7 @@ mcpRouter.post('/train',
     const mcp = getMcp();
     
     try {
-      mcp.triggerTraining();
+      mcp.triggerAgentTraining();
       
       res.json({
         success: true,

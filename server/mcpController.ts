@@ -6,10 +6,10 @@
  */
 
 import { MasterControlProgram } from '../agents/MasterControlProgram';
-import { getEnvironmentConfig } from '../config/mcpConfig';
-import { ValuationAgent } from '../agents/ValuationAgent';
-import { DataCleanerAgent } from '../agents/DataCleanerAgent';
-import { ReportingAgent } from '../agents/ReportingAgent';
+import { getMCPConfig } from '../config/mcpConfig';
+import { ValuationAgent } from '../agents/ValuationAgent.new';
+import { DataCleanerAgent } from '../agents/DataCleanerAgent.new';
+import { ReportingAgent } from '../agents/ReportingAgent.new';
 import { IAgent } from '../agents/BaseAgent';
 import { AgentType, EventType } from '../shared/agentProtocol';
 
@@ -29,8 +29,8 @@ export function initializeMcp(): MasterControlProgram {
   console.log('Initializing MCP and Agent Army...');
   
   // Create MCP instance with configuration
-  const config = getEnvironmentConfig();
-  mcpInstance = new MasterControlProgram(config);
+  const config = getMCPConfig();
+  mcpInstance = MasterControlProgram.getInstance(config);
   
   // Initialize and register agents
   registerCoreAgents(mcpInstance);
@@ -86,11 +86,16 @@ export async function processAgentRequest(agentType: AgentType, request: any): P
   }
   
   // Find an agent with the required capability
-  const agentId = mcp.findAgentWithCapability(capability);
+  // Use the capability map to find suitable agents
+  const capabilityMap = mcp.getCapabilityMap();
+  const agentsWithCapability = capabilityMap[capability] || [];
   
-  if (!agentId) {
+  if (agentsWithCapability.length === 0) {
     throw new Error(`No agent available with capability: ${capability}`);
   }
+  
+  // Use the first agent with the capability
+  const agentId = agentsWithCapability[0];
   
   // Get the agent and process the request
   const agent = getAgentById(agentId);
@@ -120,11 +125,11 @@ export function broadcastAgentCommand(
   
   // Send command to each agent
   agents.forEach(agent => {
-    mcp.sendMessageToAgent(
+    mcp.sendSystemMessage(
       agent.getAgentId(),
       EventType.COMMAND,
       {
-        commandName,
+        command: commandName,
         parameters
       }
     );
@@ -137,7 +142,21 @@ export function broadcastAgentCommand(
  */
 export function getAgentMetrics(): Record<string, any> {
   const mcp = getMcp();
-  return mcp.getAgentMetrics();
+  // Use system info which includes metrics
+  const systemInfo = mcp.getSystemInfo();
+  const agentList = mcp.getAgentList();
+  
+  // Create metrics map
+  const metrics: Record<string, any> = {};
+  
+  agentList.forEach(agent => {
+    const agentStatus = mcp.getAgentStatus(agent.id);
+    if (agentStatus) {
+      metrics[agent.id] = agentStatus;
+    }
+  });
+  
+  return metrics;
 }
 
 /**
@@ -147,7 +166,7 @@ export function getAgentMetrics(): Record<string, any> {
  */
 export function getExperiences(count: number = 100): any[] {
   const mcp = getMcp();
-  return mcp.sampleExperiences(count);
+  return mcp.getExperiences(count);
 }
 
 /**

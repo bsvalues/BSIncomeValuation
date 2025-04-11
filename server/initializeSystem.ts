@@ -8,8 +8,8 @@
 
 import { Core } from '../agents/Core';
 import { ValuationAgent } from '../agents/ValuationAgent.new';
-import { DataCleanerAgent } from '../agents/DataCleanerAgent';
-import { ReportingAgent } from '../agents/ReportingAgent';
+import { DataCleanerAgent } from '../agents/DataCleanerAgent.new';
+import { ReportingAgent } from '../agents/ReportingAgent.new';
 import { MASTER_PROMPT } from '../config/masterPrompt';
 
 let systemInitialized = false;

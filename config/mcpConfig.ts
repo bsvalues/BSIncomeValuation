@@ -1,125 +1,107 @@
 /**
- * MCP and Agent Army Configuration
+ * Master Control Program Configuration
  * 
- * This file contains the configuration settings for the Master Control Program (MCP)
- * and Agent Army. It defines parameters for messaging, replay buffer, training,
- * and default agent settings.
+ * This module defines the configuration settings for the Master Control Program (MCP)
+ * which is the central coordination component of the multi-agent system.
  */
-
-import { AgentConfig, MCPConfig } from '../agents/MasterControlProgram';
 
 /**
- * Default agent configuration
+ * MCP Configuration
  */
-export const DEFAULT_AGENT_CONFIG: AgentConfig = {
-  enabled: true,
-  performanceThreshold: 0.7, // Minimum acceptable performance (0-1)
-  maxRetries: 3,             // Max retries for failed operations
-  timeoutMs: 30000           // Timeout for operations (30 seconds)
-};
-
-/**
- * Master Control Program configuration
- */
-export const MCP_CONFIG: MCPConfig = {
-  replayBuffer: {
-    type: 'memory',           // Use in-memory replay buffer for development
-    maxSize: 1000,            // Store up to 1000 experiences
-    priorityThreshold: 0.7    // Threshold for high-priority experiences
-  },
-  training: {
-    triggerThreshold: 100,    // Start training after 100 experiences
-    sampleSize: 50,           // Use 50 experiences for each training session
-    minPriority: 0.3          // Minimum priority for training samples
-  },
-  defaultAgentConfig: DEFAULT_AGENT_CONFIG
-};
-
-/**
- * Configuration for the ValuationAgent
- */
-export const VALUATION_AGENT_CONFIG = {
-  ...DEFAULT_AGENT_CONFIG,
-  confidenceThreshold: 0.7,   // Minimum confidence for valuation results
-  learningRate: 0.1,          // Learning rate for parameter adjustments
-  multiplierRange: {
-    min: 2.5,                 // Minimum income multiplier
-    max: 5.0                  // Maximum income multiplier
-  },
-  // Benton County-specific settings
-  bentonCountyFactors: {
-    residentialBaseMultiplier: 4.2,
-    commercialBaseMultiplier: 3.8,
-    agriculturalBaseMultiplier: 3.5
-  }
-};
-
-/**
- * Configuration for the DataCleanerAgent
- */
-export const DATA_CLEANER_AGENT_CONFIG = {
-  ...DEFAULT_AGENT_CONFIG,
-  duplicateDetectionThreshold: 0.85,  // Similarity threshold for duplicates
-  validationRules: {
-    allowNegativeIncome: false,       // Whether to allow negative income values
-    requireDescriptions: true,        // Whether descriptions are required
-    allowedFrequencies: [             // Valid frequency values
-      'weekly', 'biweekly', 'monthly', 'quarterly', 'annually'
-    ]
-  }
-};
-
-/**
- * Configuration for the ReportingAgent
- */
-export const REPORTING_AGENT_CONFIG = {
-  ...DEFAULT_AGENT_CONFIG,
-  reportingPeriods: ['monthly', 'quarterly', 'yearly'],
-  defaultPeriod: 'monthly',
-  insightGenerationThreshold: 5,      // Minimum number of data points for insights
-  chartGenerationEnabled: true        // Whether to generate chart data
-};
-
-/**
- * Configuration for the ComplianceAgent
- */
-export const COMPLIANCE_AGENT_CONFIG = {
-  ...DEFAULT_AGENT_CONFIG,
-  complianceRules: {
-    requireAuditTrail: true,          // Whether all operations need audit records
-    enforceDataRetention: true,       // Whether to enforce data retention policies
-    bentonCountyRegulations: {
-      requiredFields: [               // Fields required for compliance
-        'propertyId', 'valuationDate', 'assessorId'
-      ]
-    }
-  },
-  auditLogEnabled: true               // Whether to generate audit logs
-};
-
-/**
- * Get environment-specific configuration
- * This allows for different settings in development vs. production
- */
-export function getEnvironmentConfig(): MCPConfig {
-  const environment = process.env.NODE_ENV || 'development';
+export const MCP_CONFIG = {
+  // Basic settings
+  maxAgents: 20,
+  messageTimeout: 30000, // 30 seconds
+  maxRetries: 3,
+  logMessages: true,
   
-  if (environment === 'production') {
-    return {
-      ...MCP_CONFIG,
-      replayBuffer: {
-        type: 'postgres',             // Use PostgreSQL in production
-        connectionString: process.env.DATABASE_URL,
-        maxSize: 10000,               // Store more experiences in production
-        priorityThreshold: 0.7
-      },
-      training: {
-        triggerThreshold: 500,        // More experiences before training in production
-        sampleSize: 200,              // Larger training samples in production
-        minPriority: 0.3
-      }
-    };
-  }
+  // Throttling to prevent overload
+  throttleRequests: false,
+  throttleLimit: 10, // Max requests per source per second
   
+  // System health monitoring
+  healthCheckInterval: 60000, // 1 minute
+  
+  // Agent management
+  defaultAgentTimeout: 5000, // 5 seconds
+  
+  // Experience collection
+  experienceCollectionEnabled: true,
+  maxExperiencesPerAgent: 1000,
+  
+  // Messaging
+  priorityLevels: {
+    high: 1,
+    medium: 2,
+    low: 3
+  },
+  
+  // Performance optimization
+  useWorkerThreads: false, // Enable for production
+  inMemoryBufferSize: 100, // Number of messages to keep in memory
+  
+  // Default agent-specific settings
+  valuationAgentSettings: {
+    confidenceThreshold: 0.7,
+    maxPropertyComps: 5,
+    detailLevel: 'high'
+  },
+  
+  dataCleanerAgentSettings: {
+    validationLevel: 'strict',
+    automaticCorrection: true,
+    outlierDetectionEnabled: true
+  },
+  
+  reportingAgentSettings: {
+    maxReportLength: 2000,
+    includeCharts: true,
+    summaryLength: 'medium'
+  }
+};
+
+/**
+ * Get the MCP configuration
+ * @returns The MCP configuration
+ */
+export function getMCPConfig(): typeof MCP_CONFIG {
   return MCP_CONFIG;
 }
+
+/**
+ * Valuation Agent Configuration
+ */
+export const VALUATION_AGENT_CONFIG = {
+  confidenceThreshold: 0.7,
+  learningRate: 0.05,
+  multiplierRange: { min: 2.0, max: 5.0 },
+  bentonCountyFactors: {
+    residentialBaseMultiplier: 3.5,
+    commercialBaseMultiplier: 3.2,
+    agriculturalBaseMultiplier: 2.8
+  },
+  ...MCP_CONFIG.valuationAgentSettings
+};
+
+/**
+ * Data Cleaner Agent Configuration
+ */
+export const DATA_CLEANER_AGENT_CONFIG = {
+  validationThreshold: 0.8,
+  autoCorrectConfidenceThreshold: 0.9,
+  learningRate: 0.03,
+  outlierDetectionSensitivity: 0.7,
+  ...MCP_CONFIG.dataCleanerAgentSettings
+};
+
+/**
+ * Reporting Agent Configuration
+ */
+export const REPORTING_AGENT_CONFIG = {
+  confidenceThreshold: 0.7,
+  learningRate: 0.04,
+  maxReportLength: 2000,
+  defaultFormatting: 'professional',
+  maxCharts: 5,
+  ...MCP_CONFIG.reportingAgentSettings
+};
