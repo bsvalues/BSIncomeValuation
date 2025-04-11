@@ -12,6 +12,10 @@ import { DataCleanerAgent } from '../agents/DataCleanerAgent.new';
 import { ReportingAgent } from '../agents/ReportingAgent.new';
 import { ArchitectPrimeAgent } from '../agents/ArchitectPrimeAgent';
 import { IntegrationCoordinatorAgent } from '../agents/IntegrationCoordinatorAgent';
+import { ValuationLeadAgent } from '../agents/ValuationLeadAgent';
+import { DataCleaningLeadAgent } from '../agents/DataCleaningLeadAgent';
+import { ReportingLeadAgent } from '../agents/ReportingLeadAgent';
+import { ComponentDomain } from '../agents/ComponentLeadAgent';
 import { MASTER_PROMPT } from '../config/masterPrompt';
 
 let systemInitialized = false;
