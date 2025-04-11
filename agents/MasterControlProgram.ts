@@ -777,6 +777,15 @@ export class MasterControlProgram extends EventEmitter {
    * @param agentId The ID of the agent
    * @returns The agent's status or undefined if not found
    */
+  /**
+   * Get an agent by ID
+   * @param agentId The agent ID
+   * @returns The agent, or undefined if not found
+   */
+  public getAgentById(agentId: string): IAgent | undefined {
+    return this.agents.get(agentId);
+  }
+  
   public getAgentStatus(agentId: string): AgentStatus | undefined {
     const agent = this.agents.get(agentId);
     return agent ? agent.getStatus() : undefined;

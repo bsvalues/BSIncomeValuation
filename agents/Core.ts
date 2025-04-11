@@ -7,10 +7,10 @@
  */
 
 import { EventEmitter } from 'events';
-import { AgentType, AgentMessage, EventType, SystemHealthStatus } from '../shared/agentProtocol';
+import { AgentType, AgentMessage, EventType, SystemHealthStatus, AgentStatus } from '../shared/agentProtocol';
 import { MCP_CONFIG } from '../config/mcpConfig';
 import { MasterControlProgram } from './MasterControlProgram';
-import { IAgent } from './BaseAgent';
+import { IAgent, MessageHandler } from './BaseAgent';
 import { MASTER_PROMPT } from '../config/masterPrompt';
 
 /**
@@ -69,11 +69,171 @@ export class Core extends EventEmitter {
       throttleLimit: MCP_CONFIG.throttleLimit
     });
     
+    // Create and register the Core adapter as an IAgent to receive messages
+    this.registerCoreAsAgent();
+    
     // Set up health check interval
     this.setupHealthCheck();
     
     // Log initialization
     this.log(`Core initialized successfully`);
+  }
+  
+  /**
+   * Register the Core as a special agent with the MCP
+   * This allows it to receive messages sent to "CORE"
+   */
+  private registerCoreAsAgent(): void {
+    // Create an adapter that implements IAgent
+    const coreAgentAdapter: IAgent = {
+      processRequest: async (request: any): Promise<any> => {
+        this.log(`Core received request: ${JSON.stringify(request)}`);
+        return { status: 'processed_by_core', timestamp: new Date().toISOString() };
+      },
+      
+      sendMessage: (message: AgentMessage): void => {
+        this.mcp.handleMessage(message);
+      },
+      
+      handleHelpRequest: async (helpRequest: any, requestingAgentId: string): Promise<void> => {
+        this.log(`Core received help request from ${requestingAgentId}`);
+        
+        // Emit help request event
+        this.emit('message_assistance_requested', {
+          sourceAgentId: requestingAgentId,
+          payload: helpRequest
+        });
+        
+        // Send acknowledgment
+        const ackMessage: AgentMessage = {
+          messageId: crypto.randomUUID(),
+          correlationId: helpRequest.correlationId || crypto.randomUUID(),
+          sourceAgentId: 'CORE',
+          targetAgentId: requestingAgentId,
+          timestamp: new Date().toISOString(),
+          eventType: EventType.STATUS_UPDATE,
+          payload: {
+            status: 'help_request_acknowledged',
+            message: 'Your request for assistance has been received'
+          }
+        };
+        
+        this.mcp.handleMessage(ackMessage);
+      },
+      
+      learn: async (experiences: any[]): Promise<void> => {
+        this.log(`Core received ${experiences.length} experiences for learning`);
+        // Core doesn't actually learn but can process the experiences
+      },
+      
+      getAgentId: (): string => 'CORE',
+      
+      getAgentType: (): AgentType => AgentType.SYSTEM,
+      
+      getCapabilities: (): string[] => [
+        'system_orchestration',
+        'inter_agent_coordination',
+        'health_monitoring'
+      ],
+      
+      onMessage: async (message: AgentMessage): Promise<void> => {
+        this.log(`Core received message: ${message.eventType} from ${message.sourceAgentId}`);
+        
+        // Handle message based on event type
+        switch (message.eventType) {
+          case EventType.STATUS_UPDATE:
+            // Process status update
+            this.emit('agent_status_update', {
+              agentId: message.sourceAgentId,
+              status: message.payload
+            });
+            break;
+            
+          case EventType.ERROR:
+            // Process error message
+            this.emit('message_error', message);
+            this.log(`Error from ${message.sourceAgentId}: ${message.payload.errorMessage}`, 'error');
+            break;
+            
+          case EventType.ASSISTANCE_REQUESTED:
+            // Process assistance request
+            this.emit('message_assistance_requested', message);
+            break;
+            
+          case EventType.COMMAND:
+            // Process command (if supported)
+            const command = message.payload.command;
+            
+            if (command === 'get_master_prompt') {
+              // Return the master prompt
+              const responseMsg: AgentMessage = {
+                messageId: crypto.randomUUID(),
+                correlationId: message.correlationId,
+                sourceAgentId: 'CORE',
+                targetAgentId: message.sourceAgentId,
+                timestamp: new Date().toISOString(),
+                eventType: EventType.COMMAND_RESULT,
+                payload: {
+                  command,
+                  status: 'success',
+                  masterPrompt: this.getMasterPrompt()
+                }
+              };
+              
+              this.mcp.handleMessage(responseMsg);
+            } else {
+              // Unknown command
+              const errorMsg: AgentMessage = {
+                messageId: crypto.randomUUID(),
+                correlationId: message.correlationId,
+                sourceAgentId: 'CORE',
+                targetAgentId: message.sourceAgentId,
+                timestamp: new Date().toISOString(),
+                eventType: EventType.ERROR,
+                payload: {
+                  errorCode: 'COMMAND_NOT_SUPPORTED',
+                  errorMessage: `Core does not support command: ${command}`
+                }
+              };
+              
+              this.mcp.handleMessage(errorMsg);
+            }
+            break;
+        }
+      },
+      
+      setMessageHandler: (handler: MessageHandler): void => {
+        // Core uses its own message handling
+      },
+      
+      getMetrics: (): any => {
+        return {
+          systemUptime: Date.now() - this.systemStartTime.getTime(),
+          agentCount: this.agents.size,
+          startTime: this.systemStartTime.toISOString()
+        };
+      },
+      
+      getStatus: (): AgentStatus => {
+        return {
+          agentId: 'CORE',
+          agentType: AgentType.SYSTEM,
+          status: 'healthy',
+          lastActivity: new Date().toISOString(),
+          activeRequests: 0,
+          metrics: {
+            avgResponseTime: 0,
+            successRate: 1.0,
+            errorRate: 0.0,
+            requestsProcessed: 0
+          }
+        };
+      }
+    };
+    
+    // Register the Core adapter with the MCP
+    this.mcp.registerAgent(coreAgentAdapter);
+    this.log('Core registered as agent with ID: CORE');
   }
   
   /**
@@ -183,12 +343,47 @@ export class Core extends EventEmitter {
       // Get MCP status
       const mcpStatus = this.mcp.getStatus();
       
-      // Get status of all agents
-      const agentStatuses = Object.fromEntries(
-        Array.from(this.agents.entries()).map(([id, agent]) => 
-          [id, agent.getStatus()]
-        )
-      );
+      // Get status of all registered agents using a simpler approach
+      const agentStatuses: Record<string, AgentStatus> = {};
+      
+      // Use agents from our local collection (safer than querying MCP directly)
+      for (const [agentId, agent] of this.agents.entries()) {
+        try {
+          const status = agent.getStatus();
+          agentStatuses[agentId] = status;
+        } catch (err) {
+          this.log(`Error getting status for agent ${agentId}: ${(err as Error).message}`, 'warn');
+          // Create a placeholder status
+          agentStatuses[agentId] = {
+            agentId: agentId,
+            agentType: agent.getAgentType(),
+            status: 'degraded' as 'degraded' | 'healthy' | 'error',
+            lastActivity: new Date().toISOString(),
+            activeRequests: 0,
+            metrics: { 
+              avgResponseTime: 0, 
+              successRate: 0, 
+              errorRate: 1.0, 
+              requestsProcessed: 0 
+            }
+          };
+        }
+      }
+      
+      // Also add a status for the CORE agent
+      agentStatuses['CORE'] = {
+        agentId: 'CORE',
+        agentType: AgentType.SYSTEM,
+        status: 'healthy',
+        lastActivity: new Date().toISOString(),
+        activeRequests: 0,
+        metrics: { 
+          avgResponseTime: 0, 
+          successRate: 1.0, 
+          errorRate: 0.0, 
+          requestsProcessed: 0 
+        }
+      };
       
       // Determine overall system status
       let systemStatus: 'healthy' | 'degraded' | 'error' = 'healthy';
