@@ -162,3 +162,8 @@ export interface SystemHealthStatus {
   };
   issues?: string[];
 }
+
+/**
+ * Practice severity levels for best practices and compliance rules
+ */
+export type PracticeSeverity = 'critical' | 'high' | 'medium' | 'low';

@@ -8,7 +8,7 @@
  */
 
 import { ComponentLeadAgent, ComponentDomain } from './ComponentLeadAgent';
-import { AgentMessage, EventType } from '../shared/agentProtocol';
+import { AgentMessage, EventType, PracticeSeverity } from '../shared/agentProtocol';
 
 /**
  * Component domain for compliance
@@ -63,7 +63,7 @@ interface ComplianceRule {
   jurisdiction: string;
   regulationReference: string;
   checkFunction: (operation: DataOperation) => boolean;
-  severity: 'critical' | 'high' | 'medium' | 'low';
+  severity: PracticeSeverity;
   remediationGuidance: string;
 }
 
